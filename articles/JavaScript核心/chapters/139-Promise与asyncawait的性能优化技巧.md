@@ -1,0 +1,150 @@
+# Promise与async/await的性能优化技巧
+
+> **领域**：JavaScript核心 ｜ **模块**：Promise与async/await ｜ **难度**：高级 ｜ **类型**：性能优化
+
+
+## 导读
+
+本章属于 **JavaScript核心** 教程的 **Promise与async/await** 模块，难度为 **高级**。阅读重点在于建立清晰的概念模型与工程判断能力，而非死记细节。
+
+## 核心概念
+
+JavaScript 是 Web 原生语言，ES2024 持续演进，事件驱动、原型链与异步模型是理解浏览器与 Node.js 的基础。
+
+在 **JavaScript核心** 体系中，**Promise与async/await** 与上下游模块形成协作。技术栈以 **ES2024** 为核心（JavaScript），生态包括 V8, Node.js, Browser。
+
+「Promise与async/await」是该领域的核心知识模块，理解其原理与边界是工程实践的基础。
+
+### 概念精讲
+
+**Promise与async/await的基本概念与定义**
+
+从数据出发：输入输出是什么格式，状态如何变迁。 在 Promise与async/await 语境下，这一点直接影响设计决策与故障排查思路。
+
+**Promise与async/await在JavaScript核心中的作用与地位**
+
+从关系出发：它与上下游模块的依赖与接口契约。 在 Promise与async/await 语境下，这一点直接影响设计决策与故障排查思路。
+
+**Promise与async/await的核心数据结构**
+
+从实践出发：典型应用场景与反模式（不该用的场景）。 在 Promise与async/await 语境下，这一点直接影响设计决策与故障排查思路。
+
+**Promise与async/await的关键算法与流程**
+
+从演进出发：历史上为何出现、未来可能如何变化。 在 Promise与async/await 语境下，这一点直接影响设计决策与故障排查思路。
+
+**Promise与async/await与其他模块的关系**
+
+从度量出发：如何评估它是否工作正常、性能是否达标。 在 Promise与async/await 语境下，这一点直接影响设计决策与故障排查思路。
+
+
+## 架构与流程
+
+以下框图帮助你在宏观层面把握模块协作关系与处理流向：
+
+```mermaid
+flowchart LR
+    S0[基准测试]
+    S1[瓶颈定位]
+    S2[优化实施]
+    S3[回归验证]
+    S0 --> S1
+    S1 --> S2
+    S2 --> S3
+```
+
+## 深度讲解
+
+### 性能指标体系
+
+优化前先定义目标：降 P99、提吞吐还是减资源？同时关注 **延迟、吞吐、错误率、资源利用率**。
+
+### 常见瓶颈
+
+- I/O 等待（网络、磁盘、数据库）
+- 锁竞争与排队
+- 内存压力引发 GC 或缓存失效
+- 算法复杂度在规模增长后成为硬伤
+
+### 优化循环
+
+度量 → 定位 → 改动 → 验证。每次只改一处，保留对比数据。优先缓存、批处理、索引、连接池、异步化；避免过早微优化。
+
+### 防回归
+
+将 Promise与async/await 关键路径基线纳入 CI 或定期压测。
+
+### 落地检查清单
+
+- **掌握Promise与async/await的常见问题与排查方法**：落地时需明确验收标准与回滚方案。
+- **理解Promise与async/await的安全注意事项**：落地时需明确验收标准与回滚方案。
+- **掌握Promise与async/await的调优技巧与最佳实践**：落地时需明确验收标准与回滚方案。
+- **了解Promise与async/await在实际项目中的应用案例**：落地时需明确验收标准与回滚方案。
+
+
+### 常见误区与应对
+
+**误区：对Promise与async/await的概念理解不深入导致误用**
+
+**应对**：回到官方定义画一张概念图，与同事讲解一遍，确保能用自己的话复述。
+
+**误区：忽略Promise与async/await的性能边界与限制条件**
+
+**应对**：用 Profiler 或压测建立基线，对比优化前后数据，避免凭感觉优化。
+
+**误区：Promise与async/await配置不当引发的问题**
+
+**应对**：核对环境变量、配置文件与部署清单是否一致，使用配置 diff 工具排查。
+
+**误区：缺乏对Promise与async/await底层原理的理解**
+
+**应对**：阅读官方文档与一篇深度文章，结合小实验验证理解。
+
+**误区：Promise与async/await与其他模块集成时的兼容性问题**
+
+**应对**：列出依赖版本矩阵，在 CI 中跑集成测试覆盖主要组合。
+
+
+### 最佳实践
+
+1. **遵循Promise与async/await的官方推荐用法与规范** — 落地方式：写入团队 Wiki 并纳入 Code Review 检查项。
+
+2. **在理解原理的基础上合理使用Promise与async/await** — 落地方式：配置静态检查或 CI 规则自动拦截违规写法。
+
+3. **建立完善的Promise与async/await监控与告警机制** — 落地方式：在新人 onboarding 中作为必修内容讲解。
+
+4. **编写充分的测试用例覆盖Promise与async/await的各种场景** — 落地方式：每季度回顾一次，对照社区最佳实践更新。
+
+5. **持续关注Promise与async/await的版本更新与最佳实践演进** — 落地方式：用真实项目案例演示正确与错误对比。
+
+
+### 本章小结
+
+学完本章，你应能：
+
+- 说清 **Promise与async/await的性能优化技巧** 在 JavaScript核心/Promise与async/await 中的定位。
+- 描述核心流程与关键概念，能用自己的话复述。
+- 识别常见误区并采取预防与排查手段。
+- 在项目中做出与场景匹配的工程决策。
+
+类型：**性能优化**。建议完成小练习或复盘笔记，将阅读转化为能力。
+
+## 延伸学习
+
+建议结合以下同模块章节继续阅读，构建完整知识链：
+
+- Promise与async/await的配置与使用
+- Promise与async/await的常见问题与解决方案
+- Promise与async/await的最佳实践指南
+- Promise与async/await的高级应用场景
+
+### 参考资料
+
+- JavaScript核心官方文档 - Promise与async/await章节
+- 《JavaScript核心权威指南》相关章节
+- Promise与async/await源码实现与注释
+- JavaScript核心社区最佳实践文章
+- Promise与async/await相关技术博客与教程
+
+---
+*章节 ID: 139 ｜ 领域: JavaScript核心 ｜ 版本: 2.0*
