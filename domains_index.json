@@ -1,0 +1,507 @@
+{
+  "total_domains": 100,
+  "total_knowledge_points": 10000,
+  "version": "2.0",
+  "domains": [
+    {
+      "name": "Linux内核",
+      "count": 200,
+      "file": "Linux内核.json"
+    },
+    {
+      "name": "Linux系统编程",
+      "count": 120,
+      "file": "Linux系统编程.json"
+    },
+    {
+      "name": "操作系统原理",
+      "count": 120,
+      "file": "操作系统原理.json"
+    },
+    {
+      "name": "计算机网络",
+      "count": 120,
+      "file": "计算机网络.json"
+    },
+    {
+      "name": "编译原理",
+      "count": 100,
+      "file": "编译原理.json"
+    },
+    {
+      "name": "计算机组成原理",
+      "count": 100,
+      "file": "计算机组成原理.json"
+    },
+    {
+      "name": "汇编语言",
+      "count": 80,
+      "file": "汇编语言.json"
+    },
+    {
+      "name": "嵌入式系统",
+      "count": 100,
+      "file": "嵌入式系统.json"
+    },
+    {
+      "name": "驱动开发",
+      "count": 100,
+      "file": "驱动开发.json"
+    },
+    {
+      "name": "虚拟化技术",
+      "count": 80,
+      "file": "虚拟化技术.json"
+    },
+    {
+      "name": "容器技术",
+      "count": 100,
+      "file": "容器技术.json"
+    },
+    {
+      "name": "实时系统",
+      "count": 80,
+      "file": "实时系统.json"
+    },
+    {
+      "name": "C语言",
+      "count": 120,
+      "file": "C语言.json"
+    },
+    {
+      "name": "C++",
+      "count": 200,
+      "file": "C++.json"
+    },
+    {
+      "name": "Python核心",
+      "count": 200,
+      "file": "Python核心.json"
+    },
+    {
+      "name": "Python高级",
+      "count": 120,
+      "file": "Python高级.json"
+    },
+    {
+      "name": "JavaScript核心",
+      "count": 200,
+      "file": "JavaScript核心.json"
+    },
+    {
+      "name": "TypeScript",
+      "count": 100,
+      "file": "TypeScript.json"
+    },
+    {
+      "name": "Java核心",
+      "count": 150,
+      "file": "Java核心.json"
+    },
+    {
+      "name": "Java并发",
+      "count": 120,
+      "file": "Java并发.json"
+    },
+    {
+      "name": "Go语言",
+      "count": 120,
+      "file": "Go语言.json"
+    },
+    {
+      "name": "Rust语言",
+      "count": 100,
+      "file": "Rust语言.json"
+    },
+    {
+      "name": "PHP",
+      "count": 80,
+      "file": "PHP.json"
+    },
+    {
+      "name": "C#",
+      "count": 100,
+      "file": "C#.json"
+    },
+    {
+      "name": "函数式编程",
+      "count": 80,
+      "file": "函数式编程.json"
+    },
+    {
+      "name": "面向对象编程",
+      "count": 80,
+      "file": "面向对象编程.json"
+    },
+    {
+      "name": "HTML与CSS",
+      "count": 120,
+      "file": "HTML与CSS.json"
+    },
+    {
+      "name": "React",
+      "count": 200,
+      "file": "React.json"
+    },
+    {
+      "name": "Vue",
+      "count": 120,
+      "file": "Vue.json"
+    },
+    {
+      "name": "Node.js",
+      "count": 120,
+      "file": "Node.js.json"
+    },
+    {
+      "name": "前端工程化",
+      "count": 100,
+      "file": "前端工程化.json"
+    },
+    {
+      "name": "浏览器原理",
+      "count": 100,
+      "file": "浏览器原理.json"
+    },
+    {
+      "name": "Web性能优化",
+      "count": 100,
+      "file": "Web性能优化.json"
+    },
+    {
+      "name": "PWA",
+      "count": 60,
+      "file": "PWA.json"
+    },
+    {
+      "name": "Angular",
+      "count": 80,
+      "file": "Angular.json"
+    },
+    {
+      "name": "小程序开发",
+      "count": 80,
+      "file": "小程序开发.json"
+    },
+    {
+      "name": "后端架构",
+      "count": 120,
+      "file": "后端架构.json"
+    },
+    {
+      "name": "RESTful API",
+      "count": 100,
+      "file": "RESTful API.json"
+    },
+    {
+      "name": "微服务架构",
+      "count": 120,
+      "file": "微服务架构.json"
+    },
+    {
+      "name": "Spring Boot",
+      "count": 120,
+      "file": "Spring Boot.json"
+    },
+    {
+      "name": "认证授权",
+      "count": 80,
+      "file": "认证授权.json"
+    },
+    {
+      "name": "API设计",
+      "count": 80,
+      "file": "API设计.json"
+    },
+    {
+      "name": "Serverless",
+      "count": 80,
+      "file": "Serverless.json"
+    },
+    {
+      "name": "GraphQL",
+      "count": 60,
+      "file": "GraphQL.json"
+    },
+    {
+      "name": "WebSocket",
+      "count": 60,
+      "file": "WebSocket.json"
+    },
+    {
+      "name": "消息队列",
+      "count": 100,
+      "file": "消息队列.json"
+    },
+    {
+      "name": "Django",
+      "count": 80,
+      "file": "Django.json"
+    },
+    {
+      "name": "Flask",
+      "count": 60,
+      "file": "Flask.json"
+    },
+    {
+      "name": "数据库原理",
+      "count": 120,
+      "file": "数据库原理.json"
+    },
+    {
+      "name": "MySQL",
+      "count": 200,
+      "file": "MySQL.json"
+    },
+    {
+      "name": "Redis",
+      "count": 120,
+      "file": "Redis.json"
+    },
+    {
+      "name": "PostgreSQL",
+      "count": 100,
+      "file": "PostgreSQL.json"
+    },
+    {
+      "name": "MongoDB",
+      "count": 80,
+      "file": "MongoDB.json"
+    },
+    {
+      "name": "Elasticsearch",
+      "count": 100,
+      "file": "Elasticsearch.json"
+    },
+    {
+      "name": "数据仓库",
+      "count": 80,
+      "file": "数据仓库.json"
+    },
+    {
+      "name": "缓存技术",
+      "count": 80,
+      "file": "缓存技术.json"
+    },
+    {
+      "name": "ETL开发",
+      "count": 60,
+      "file": "ETL开发.json"
+    },
+    {
+      "name": "时序数据库",
+      "count": 60,
+      "file": "时序数据库.json"
+    },
+    {
+      "name": "Docker",
+      "count": 100,
+      "file": "Docker.json"
+    },
+    {
+      "name": "Kubernetes",
+      "count": 200,
+      "file": "Kubernetes.json"
+    },
+    {
+      "name": "CI与CD",
+      "count": 80,
+      "file": "CI与CD.json"
+    },
+    {
+      "name": "Git版本控制",
+      "count": 80,
+      "file": "Git版本控制.json"
+    },
+    {
+      "name": "Linux运维",
+      "count": 100,
+      "file": "Linux运维.json"
+    },
+    {
+      "name": "监控告警",
+      "count": 80,
+      "file": "监控告警.json"
+    },
+    {
+      "name": "日志分析",
+      "count": 60,
+      "file": "日志分析.json"
+    },
+    {
+      "name": "Nginx",
+      "count": 80,
+      "file": "Nginx.json"
+    },
+    {
+      "name": "云计算",
+      "count": 60,
+      "file": "云计算.json"
+    },
+    {
+      "name": "Ansible",
+      "count": 60,
+      "file": "Ansible.json"
+    },
+    {
+      "name": "网络安全",
+      "count": 100,
+      "file": "网络安全.json"
+    },
+    {
+      "name": "Web安全",
+      "count": 120,
+      "file": "Web安全.json"
+    },
+    {
+      "name": "密码学",
+      "count": 100,
+      "file": "密码学.json"
+    },
+    {
+      "name": "渗透测试",
+      "count": 100,
+      "file": "渗透测试.json"
+    },
+    {
+      "name": "逆向工程",
+      "count": 80,
+      "file": "逆向工程.json"
+    },
+    {
+      "name": "漏洞挖掘",
+      "count": 60,
+      "file": "漏洞挖掘.json"
+    },
+    {
+      "name": "移动安全",
+      "count": 60,
+      "file": "移动安全.json"
+    },
+    {
+      "name": "云安全",
+      "count": 60,
+      "file": "云安全.json"
+    },
+    {
+      "name": "数据结构与算法",
+      "count": 200,
+      "file": "数据结构与算法.json"
+    },
+    {
+      "name": "机器学习",
+      "count": 150,
+      "file": "机器学习.json"
+    },
+    {
+      "name": "深度学习",
+      "count": 120,
+      "file": "深度学习.json"
+    },
+    {
+      "name": "自然语言处理",
+      "count": 100,
+      "file": "自然语言处理.json"
+    },
+    {
+      "name": "计算机视觉",
+      "count": 100,
+      "file": "计算机视觉.json"
+    },
+    {
+      "name": "强化学习",
+      "count": 60,
+      "file": "强化学习.json"
+    },
+    {
+      "name": "数据挖掘",
+      "count": 80,
+      "file": "数据挖掘.json"
+    },
+    {
+      "name": "知识图谱",
+      "count": 60,
+      "file": "知识图谱.json"
+    },
+    {
+      "name": "区块链",
+      "count": 80,
+      "file": "区块链.json"
+    },
+    {
+      "name": "游戏开发",
+      "count": 100,
+      "file": "游戏开发.json"
+    },
+    {
+      "name": "计算机图形学",
+      "count": 80,
+      "file": "计算机图形学.json"
+    },
+    {
+      "name": "音视频处理",
+      "count": 80,
+      "file": "音视频处理.json"
+    },
+    {
+      "name": "物联网",
+      "count": 60,
+      "file": "物联网.json"
+    },
+    {
+      "name": "低代码开发",
+      "count": 50,
+      "file": "低代码开发.json"
+    },
+    {
+      "name": "量子计算",
+      "count": 50,
+      "file": "量子计算.json"
+    },
+    {
+      "name": "Rust系统编程",
+      "count": 50,
+      "file": "Rust系统编程.json"
+    },
+    {
+      "name": "大语言模型",
+      "count": 150,
+      "file": "大语言模型.json"
+    },
+    {
+      "name": "AIGC",
+      "count": 100,
+      "file": "AIGC.json"
+    },
+    {
+      "name": "微前端",
+      "count": 80,
+      "file": "微前端.json"
+    },
+    {
+      "name": "数据可视化",
+      "count": 100,
+      "file": "数据可视化.json"
+    },
+    {
+      "name": "自动化测试",
+      "count": 100,
+      "file": "自动化测试.json"
+    },
+    {
+      "name": "性能测试",
+      "count": 80,
+      "file": "性能测试.json"
+    },
+    {
+      "name": "代码重构",
+      "count": 80,
+      "file": "代码重构.json"
+    },
+    {
+      "name": "设计模式",
+      "count": 100,
+      "file": "设计模式.json"
+    }
+  ]
+}
