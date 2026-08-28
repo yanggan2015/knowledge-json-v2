@@ -1,32 +1,30 @@
 # Spring Boot 学习指南
 
-> **分类**：后端开发 ｜ **章节总数**：120 ｜ **技术栈**：Spring Boot 3
+> **分类**：后端开发 ｜ **技术生态**：Spring MVC、Spring Data、Spring Security、Spring Cloud、Micrometer
 
 
-## 领域概述
+## 领域定位
 
-Spring Boot是后端开发领域的重要技术方向，本系列从基础到高级逐步深入，涵盖17个核心模块：Spring Boot基础、自动配置、Starter、Web开发、数据访问等。每个知识点作为独立章节，包含原理讲解、实现要点、常见陷阱和最佳实践，配合源码分析和架构图，帮助读者建立完整的Spring Boot知识体系。
+Spring Boot 通过自动配置、Starter 依赖与内嵌容器，使 Spring 应用快速启动。Spring Boot 3 基于 Jakarta EE 9+ 与 Java 17，原生镜像支持 GraalVM。
 
-本教程基于 **Java** 与 **Spring Boot 3** 生态编写，涵盖 Spring MVC, Spring Data, Spring Security 等主流工具与框架。每章独立成篇，文字精炼、逻辑清晰，适合系统学习与按需查阅。
+从 Web、数据访问、Security 到 Actuator 监控与 Spring Cloud 微服务，面向 Java 企业级后端主流栈。
 
+本领域常用技术栈与工具包括：Spring MVC、Spring Data、Spring Security、Spring Cloud、Micrometer。
 
-## 你将学到什么
+## 学习目标
 
-完成本系列后，你将能够：
-
-- 系统理解 **Spring Boot** 的核心概念与模块划分。
-- 按难度递进掌握从入门到实战的完整知识路径。
-- 在工程实践中做出合理的技术判断与问题排查。
-- 通过章节索引快速定位所需知识点。
+- 理解自动配置条件与扩展点
+- 能构建 REST + JPA + Security 应用
+- 能配置多环境与外部化配置
+- 能集成 Actuator 与分布式组件
 
 ## 前置知识
 
-- 编程基础
-- 数据结构
-- 计算机基础
-- 后端开发基础概念
+- Java 基础
+- Maven/Gradle
+- HTTP 与 SQL
 
-## 推荐学习路径
+## 学习路径
 
 ```mermaid
 flowchart TD
@@ -58,8 +56,6 @@ flowchart TD
 
 ## 模块体系
 
-本领域按以下模块组织，难度由浅入深：
-
 - **Spring Boot基础**
 - **自动配置**
 - **Starter**
@@ -80,16 +76,12 @@ flowchart TD
 
 ## 难度分布
 
-| 难度 | 章节数 | 占比 |
-|------|--------|------|
 | 入门 | 29 | 24% |
 | 实战 | 28 | 23% |
 | 进阶 | 28 | 23% |
 | 高级 | 35 | 29% |
 
 ## 章节索引
-
-点击章节标题进入对应教程：
 
 ### Spring Boot基础
 
@@ -263,13 +255,5 @@ flowchart TD
 - [Spring Boot最佳实践的性能优化技巧](chapters/120-Spring-Boot最佳实践的性能优化技巧.md) ｜ 实战
 
 
-## 学习方法建议
-
-1. **先读概述再读章节**：用本指南建立全局地图，避免迷失在细节中。
-2. **按模块递进**：同一模块内章节有前后关联，顺序阅读效果更好。
-3. **主动复述**：每章读完后，用三五句话概括「是什么、为什么、怎么用」。
-4. **关联阅读**：利用章节底部的「延伸学习」在同模块内构建知识网络。
-5. **对照官方文档**：本教程提供结构化视角，细节以官方文档为准。
-
 ---
-*领域: Spring Boot ｜ 版本: 2.0 ｜ 共 120 章*
+*领域: Spring Boot*
