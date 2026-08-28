@@ -87,9 +87,16 @@ def narration_for(slide: Slide) -> str:
     return text[:600]
 
 
-async def synthesize_narration(text: str, out: Path, voice: str) -> None:
+async def synthesize_narration(
+    text: str,
+    out: Path,
+    voice: str,
+    rate: str = "+0%",
+    volume: str = "+0%",
+    pitch: str = "+0Hz",
+) -> None:
     import edge_tts
-    communicate = edge_tts.Communicate(text, voice)
+    communicate = edge_tts.Communicate(text, voice, rate=rate, volume=volume, pitch=pitch)
     await communicate.save(str(out))
 
 
@@ -106,14 +113,21 @@ def audio_duration(path: Path) -> float:
     return float(r.stdout.strip())
 
 
-def generate_all_narrations(slides: List[Slide], audio_dir: Path, voice: str) -> List[float]:
+def generate_all_narrations(
+    slides: List[Slide],
+    audio_dir: Path,
+    voice: str,
+    rate: str = "+0%",
+    volume: str = "+0%",
+    pitch: str = "+0Hz",
+) -> List[float]:
     async def _run() -> List[float]:
         audio_dir.mkdir(parents=True, exist_ok=True)
         durations: List[float] = []
         for i, slide in enumerate(slides, 1):
             text = narration_for(slide)
             mp3 = audio_dir / f"slide_{i:02d}.mp3"
-            await synthesize_narration(text, mp3, voice)
+            await synthesize_narration(text, mp3, voice, rate=rate, volume=volume, pitch=pitch)
             durations.append(audio_duration(mp3))
         return durations
 
@@ -650,7 +664,38 @@ def main():
     parser.add_argument("--landscape", action="store_true", help="横屏 16:9（默认竖屏 9:16）")
     parser.add_argument("--no-voice", action="store_true", help="不生成讲解配音")
     parser.add_argument("--voice", type=str, default=DEFAULT_VOICE, help="edge-tts 语音 ID")
+    parser.add_argument(
+        "--rate",
+        type=str,
+        default="+0%",
+        help="语速，相对百分比，如 +15%%（更快）或 -10%%（更慢）",
+    )
+    parser.add_argument(
+        "--volume",
+        type=str,
+        default="+0%",
+        help="音量，相对百分比，如 +20%% 或 -10%%",
+    )
+    parser.add_argument(
+        "--pitch",
+        type=str,
+        default="+0Hz",
+        help="音调，如 +5Hz 或 -3Hz",
+    )
+    parser.add_argument(
+        "--list-voices",
+        action="store_true",
+        help="列出可用中文语音后退出",
+    )
     args = parser.parse_args()
+
+    if args.list_voices:
+        import edge_tts
+        voices = asyncio.run(edge_tts.list_voices())
+        for v in sorted(voices, key=lambda x: x["ShortName"]):
+            if v["Locale"].startswith("zh"):
+                print(f"{v['ShortName']}  {v['Gender']}  {v['Locale']}")
+        return
 
     set_orientation(not args.landscape)
 
@@ -677,7 +722,10 @@ def main():
         build_video(img_dir, video_path, args.seconds)
     else:
         print("正在生成讲解配音…")
-        durations = generate_all_narrations(slides, audio_dir, args.voice)
+        durations = generate_all_narrations(
+            slides, audio_dir, args.voice,
+            rate=args.rate, volume=args.volume, pitch=args.pitch,
+        )
         build_video_with_narration(img_dir, audio_dir, durations, video_path)
 
     orient = "竖屏 9:16" if IS_PORTRAIT else "横屏 16:9"
@@ -688,6 +736,7 @@ def main():
     print(f"视频: {video_path}")
     if not args.no_voice:
         print(f"配音: {audio_dir}")
+        print(f"语音: {args.voice}  语速: {args.rate}  音量: {args.volume}  音调: {args.pitch}")
 
 
 if __name__ == "__main__":
