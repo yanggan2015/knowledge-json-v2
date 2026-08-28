@@ -1,0 +1,12 @@
+{
+  "total_files": 10100,
+  "passed": 10100,
+  "failed": 0,
+  "overview_total": 100,
+  "overview_failed": 0,
+  "chapter_total": 10000,
+  "chapter_failed": 0,
+  "issue_summary": {},
+  "failures": [],
+  "pass_rate": "100%"
+}

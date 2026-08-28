@@ -1,0 +1,606 @@
+{
+  "total_domains": 100,
+  "total_chapters": 10000,
+  "domains": [
+    {
+      "name": "AIGC",
+      "chapters": 100,
+      "path": "articles/AIGC",
+      "overview": "articles/AIGC/README.md"
+    },
+    {
+      "name": "API设计",
+      "chapters": 80,
+      "path": "articles/API设计",
+      "overview": "articles/API设计/README.md"
+    },
+    {
+      "name": "Angular",
+      "chapters": 80,
+      "path": "articles/Angular",
+      "overview": "articles/Angular/README.md"
+    },
+    {
+      "name": "Ansible",
+      "chapters": 60,
+      "path": "articles/Ansible",
+      "overview": "articles/Ansible/README.md"
+    },
+    {
+      "name": "C#",
+      "chapters": 100,
+      "path": "articles/C#",
+      "overview": "articles/C#/README.md"
+    },
+    {
+      "name": "C++",
+      "chapters": 200,
+      "path": "articles/C++",
+      "overview": "articles/C++/README.md"
+    },
+    {
+      "name": "CI与CD",
+      "chapters": 80,
+      "path": "articles/CI与CD",
+      "overview": "articles/CI与CD/README.md"
+    },
+    {
+      "name": "C语言",
+      "chapters": 120,
+      "path": "articles/C语言",
+      "overview": "articles/C语言/README.md"
+    },
+    {
+      "name": "Django",
+      "chapters": 80,
+      "path": "articles/Django",
+      "overview": "articles/Django/README.md"
+    },
+    {
+      "name": "Docker",
+      "chapters": 100,
+      "path": "articles/Docker",
+      "overview": "articles/Docker/README.md"
+    },
+    {
+      "name": "ETL开发",
+      "chapters": 60,
+      "path": "articles/ETL开发",
+      "overview": "articles/ETL开发/README.md"
+    },
+    {
+      "name": "Elasticsearch",
+      "chapters": 100,
+      "path": "articles/Elasticsearch",
+      "overview": "articles/Elasticsearch/README.md"
+    },
+    {
+      "name": "Flask",
+      "chapters": 60,
+      "path": "articles/Flask",
+      "overview": "articles/Flask/README.md"
+    },
+    {
+      "name": "Git版本控制",
+      "chapters": 80,
+      "path": "articles/Git版本控制",
+      "overview": "articles/Git版本控制/README.md"
+    },
+    {
+      "name": "Go语言",
+      "chapters": 120,
+      "path": "articles/Go语言",
+      "overview": "articles/Go语言/README.md"
+    },
+    {
+      "name": "GraphQL",
+      "chapters": 60,
+      "path": "articles/GraphQL",
+      "overview": "articles/GraphQL/README.md"
+    },
+    {
+      "name": "HTML与CSS",
+      "chapters": 120,
+      "path": "articles/HTML与CSS",
+      "overview": "articles/HTML与CSS/README.md"
+    },
+    {
+      "name": "JavaScript核心",
+      "chapters": 200,
+      "path": "articles/JavaScript核心",
+      "overview": "articles/JavaScript核心/README.md"
+    },
+    {
+      "name": "Java并发",
+      "chapters": 120,
+      "path": "articles/Java并发",
+      "overview": "articles/Java并发/README.md"
+    },
+    {
+      "name": "Java核心",
+      "chapters": 150,
+      "path": "articles/Java核心",
+      "overview": "articles/Java核心/README.md"
+    },
+    {
+      "name": "Kubernetes",
+      "chapters": 200,
+      "path": "articles/Kubernetes",
+      "overview": "articles/Kubernetes/README.md"
+    },
+    {
+      "name": "Linux内核",
+      "chapters": 200,
+      "path": "articles/Linux内核",
+      "overview": "articles/Linux内核/README.md"
+    },
+    {
+      "name": "Linux系统编程",
+      "chapters": 120,
+      "path": "articles/Linux系统编程",
+      "overview": "articles/Linux系统编程/README.md"
+    },
+    {
+      "name": "Linux运维",
+      "chapters": 100,
+      "path": "articles/Linux运维",
+      "overview": "articles/Linux运维/README.md"
+    },
+    {
+      "name": "MongoDB",
+      "chapters": 80,
+      "path": "articles/MongoDB",
+      "overview": "articles/MongoDB/README.md"
+    },
+    {
+      "name": "MySQL",
+      "chapters": 200,
+      "path": "articles/MySQL",
+      "overview": "articles/MySQL/README.md"
+    },
+    {
+      "name": "Nginx",
+      "chapters": 80,
+      "path": "articles/Nginx",
+      "overview": "articles/Nginx/README.md"
+    },
+    {
+      "name": "Node.js",
+      "chapters": 120,
+      "path": "articles/Node.js",
+      "overview": "articles/Node.js/README.md"
+    },
+    {
+      "name": "PHP",
+      "chapters": 80,
+      "path": "articles/PHP",
+      "overview": "articles/PHP/README.md"
+    },
+    {
+      "name": "PWA",
+      "chapters": 60,
+      "path": "articles/PWA",
+      "overview": "articles/PWA/README.md"
+    },
+    {
+      "name": "PostgreSQL",
+      "chapters": 100,
+      "path": "articles/PostgreSQL",
+      "overview": "articles/PostgreSQL/README.md"
+    },
+    {
+      "name": "Python核心",
+      "chapters": 200,
+      "path": "articles/Python核心",
+      "overview": "articles/Python核心/README.md"
+    },
+    {
+      "name": "Python高级",
+      "chapters": 120,
+      "path": "articles/Python高级",
+      "overview": "articles/Python高级/README.md"
+    },
+    {
+      "name": "RESTful API",
+      "chapters": 100,
+      "path": "articles/RESTful API",
+      "overview": "articles/RESTful API/README.md"
+    },
+    {
+      "name": "React",
+      "chapters": 200,
+      "path": "articles/React",
+      "overview": "articles/React/README.md"
+    },
+    {
+      "name": "Redis",
+      "chapters": 120,
+      "path": "articles/Redis",
+      "overview": "articles/Redis/README.md"
+    },
+    {
+      "name": "Rust系统编程",
+      "chapters": 50,
+      "path": "articles/Rust系统编程",
+      "overview": "articles/Rust系统编程/README.md"
+    },
+    {
+      "name": "Rust语言",
+      "chapters": 100,
+      "path": "articles/Rust语言",
+      "overview": "articles/Rust语言/README.md"
+    },
+    {
+      "name": "Serverless",
+      "chapters": 80,
+      "path": "articles/Serverless",
+      "overview": "articles/Serverless/README.md"
+    },
+    {
+      "name": "Spring Boot",
+      "chapters": 120,
+      "path": "articles/Spring Boot",
+      "overview": "articles/Spring Boot/README.md"
+    },
+    {
+      "name": "TypeScript",
+      "chapters": 100,
+      "path": "articles/TypeScript",
+      "overview": "articles/TypeScript/README.md"
+    },
+    {
+      "name": "Vue",
+      "chapters": 120,
+      "path": "articles/Vue",
+      "overview": "articles/Vue/README.md"
+    },
+    {
+      "name": "WebSocket",
+      "chapters": 60,
+      "path": "articles/WebSocket",
+      "overview": "articles/WebSocket/README.md"
+    },
+    {
+      "name": "Web安全",
+      "chapters": 120,
+      "path": "articles/Web安全",
+      "overview": "articles/Web安全/README.md"
+    },
+    {
+      "name": "Web性能优化",
+      "chapters": 100,
+      "path": "articles/Web性能优化",
+      "overview": "articles/Web性能优化/README.md"
+    },
+    {
+      "name": "云安全",
+      "chapters": 60,
+      "path": "articles/云安全",
+      "overview": "articles/云安全/README.md"
+    },
+    {
+      "name": "云计算",
+      "chapters": 60,
+      "path": "articles/云计算",
+      "overview": "articles/云计算/README.md"
+    },
+    {
+      "name": "代码重构",
+      "chapters": 80,
+      "path": "articles/代码重构",
+      "overview": "articles/代码重构/README.md"
+    },
+    {
+      "name": "低代码开发",
+      "chapters": 50,
+      "path": "articles/低代码开发",
+      "overview": "articles/低代码开发/README.md"
+    },
+    {
+      "name": "函数式编程",
+      "chapters": 80,
+      "path": "articles/函数式编程",
+      "overview": "articles/函数式编程/README.md"
+    },
+    {
+      "name": "前端工程化",
+      "chapters": 100,
+      "path": "articles/前端工程化",
+      "overview": "articles/前端工程化/README.md"
+    },
+    {
+      "name": "区块链",
+      "chapters": 80,
+      "path": "articles/区块链",
+      "overview": "articles/区块链/README.md"
+    },
+    {
+      "name": "后端架构",
+      "chapters": 120,
+      "path": "articles/后端架构",
+      "overview": "articles/后端架构/README.md"
+    },
+    {
+      "name": "大语言模型",
+      "chapters": 150,
+      "path": "articles/大语言模型",
+      "overview": "articles/大语言模型/README.md"
+    },
+    {
+      "name": "实时系统",
+      "chapters": 80,
+      "path": "articles/实时系统",
+      "overview": "articles/实时系统/README.md"
+    },
+    {
+      "name": "容器技术",
+      "chapters": 100,
+      "path": "articles/容器技术",
+      "overview": "articles/容器技术/README.md"
+    },
+    {
+      "name": "密码学",
+      "chapters": 100,
+      "path": "articles/密码学",
+      "overview": "articles/密码学/README.md"
+    },
+    {
+      "name": "小程序开发",
+      "chapters": 80,
+      "path": "articles/小程序开发",
+      "overview": "articles/小程序开发/README.md"
+    },
+    {
+      "name": "嵌入式系统",
+      "chapters": 100,
+      "path": "articles/嵌入式系统",
+      "overview": "articles/嵌入式系统/README.md"
+    },
+    {
+      "name": "强化学习",
+      "chapters": 60,
+      "path": "articles/强化学习",
+      "overview": "articles/强化学习/README.md"
+    },
+    {
+      "name": "微前端",
+      "chapters": 80,
+      "path": "articles/微前端",
+      "overview": "articles/微前端/README.md"
+    },
+    {
+      "name": "微服务架构",
+      "chapters": 120,
+      "path": "articles/微服务架构",
+      "overview": "articles/微服务架构/README.md"
+    },
+    {
+      "name": "性能测试",
+      "chapters": 80,
+      "path": "articles/性能测试",
+      "overview": "articles/性能测试/README.md"
+    },
+    {
+      "name": "操作系统原理",
+      "chapters": 120,
+      "path": "articles/操作系统原理",
+      "overview": "articles/操作系统原理/README.md"
+    },
+    {
+      "name": "数据仓库",
+      "chapters": 80,
+      "path": "articles/数据仓库",
+      "overview": "articles/数据仓库/README.md"
+    },
+    {
+      "name": "数据可视化",
+      "chapters": 100,
+      "path": "articles/数据可视化",
+      "overview": "articles/数据可视化/README.md"
+    },
+    {
+      "name": "数据库原理",
+      "chapters": 120,
+      "path": "articles/数据库原理",
+      "overview": "articles/数据库原理/README.md"
+    },
+    {
+      "name": "数据挖掘",
+      "chapters": 80,
+      "path": "articles/数据挖掘",
+      "overview": "articles/数据挖掘/README.md"
+    },
+    {
+      "name": "数据结构与算法",
+      "chapters": 200,
+      "path": "articles/数据结构与算法",
+      "overview": "articles/数据结构与算法/README.md"
+    },
+    {
+      "name": "日志分析",
+      "chapters": 60,
+      "path": "articles/日志分析",
+      "overview": "articles/日志分析/README.md"
+    },
+    {
+      "name": "时序数据库",
+      "chapters": 60,
+      "path": "articles/时序数据库",
+      "overview": "articles/时序数据库/README.md"
+    },
+    {
+      "name": "机器学习",
+      "chapters": 150,
+      "path": "articles/机器学习",
+      "overview": "articles/机器学习/README.md"
+    },
+    {
+      "name": "汇编语言",
+      "chapters": 80,
+      "path": "articles/汇编语言",
+      "overview": "articles/汇编语言/README.md"
+    },
+    {
+      "name": "浏览器原理",
+      "chapters": 100,
+      "path": "articles/浏览器原理",
+      "overview": "articles/浏览器原理/README.md"
+    },
+    {
+      "name": "消息队列",
+      "chapters": 100,
+      "path": "articles/消息队列",
+      "overview": "articles/消息队列/README.md"
+    },
+    {
+      "name": "深度学习",
+      "chapters": 120,
+      "path": "articles/深度学习",
+      "overview": "articles/深度学习/README.md"
+    },
+    {
+      "name": "渗透测试",
+      "chapters": 100,
+      "path": "articles/渗透测试",
+      "overview": "articles/渗透测试/README.md"
+    },
+    {
+      "name": "游戏开发",
+      "chapters": 100,
+      "path": "articles/游戏开发",
+      "overview": "articles/游戏开发/README.md"
+    },
+    {
+      "name": "漏洞挖掘",
+      "chapters": 60,
+      "path": "articles/漏洞挖掘",
+      "overview": "articles/漏洞挖掘/README.md"
+    },
+    {
+      "name": "物联网",
+      "chapters": 60,
+      "path": "articles/物联网",
+      "overview": "articles/物联网/README.md"
+    },
+    {
+      "name": "监控告警",
+      "chapters": 80,
+      "path": "articles/监控告警",
+      "overview": "articles/监控告警/README.md"
+    },
+    {
+      "name": "知识图谱",
+      "chapters": 60,
+      "path": "articles/知识图谱",
+      "overview": "articles/知识图谱/README.md"
+    },
+    {
+      "name": "移动安全",
+      "chapters": 60,
+      "path": "articles/移动安全",
+      "overview": "articles/移动安全/README.md"
+    },
+    {
+      "name": "缓存技术",
+      "chapters": 80,
+      "path": "articles/缓存技术",
+      "overview": "articles/缓存技术/README.md"
+    },
+    {
+      "name": "编译原理",
+      "chapters": 100,
+      "path": "articles/编译原理",
+      "overview": "articles/编译原理/README.md"
+    },
+    {
+      "name": "网络安全",
+      "chapters": 100,
+      "path": "articles/网络安全",
+      "overview": "articles/网络安全/README.md"
+    },
+    {
+      "name": "自动化测试",
+      "chapters": 100,
+      "path": "articles/自动化测试",
+      "overview": "articles/自动化测试/README.md"
+    },
+    {
+      "name": "自然语言处理",
+      "chapters": 100,
+      "path": "articles/自然语言处理",
+      "overview": "articles/自然语言处理/README.md"
+    },
+    {
+      "name": "虚拟化技术",
+      "chapters": 80,
+      "path": "articles/虚拟化技术",
+      "overview": "articles/虚拟化技术/README.md"
+    },
+    {
+      "name": "计算机图形学",
+      "chapters": 80,
+      "path": "articles/计算机图形学",
+      "overview": "articles/计算机图形学/README.md"
+    },
+    {
+      "name": "计算机组成原理",
+      "chapters": 100,
+      "path": "articles/计算机组成原理",
+      "overview": "articles/计算机组成原理/README.md"
+    },
+    {
+      "name": "计算机网络",
+      "chapters": 120,
+      "path": "articles/计算机网络",
+      "overview": "articles/计算机网络/README.md"
+    },
+    {
+      "name": "计算机视觉",
+      "chapters": 100,
+      "path": "articles/计算机视觉",
+      "overview": "articles/计算机视觉/README.md"
+    },
+    {
+      "name": "认证授权",
+      "chapters": 80,
+      "path": "articles/认证授权",
+      "overview": "articles/认证授权/README.md"
+    },
+    {
+      "name": "设计模式",
+      "chapters": 100,
+      "path": "articles/设计模式",
+      "overview": "articles/设计模式/README.md"
+    },
+    {
+      "name": "逆向工程",
+      "chapters": 80,
+      "path": "articles/逆向工程",
+      "overview": "articles/逆向工程/README.md"
+    },
+    {
+      "name": "量子计算",
+      "chapters": 50,
+      "path": "articles/量子计算",
+      "overview": "articles/量子计算/README.md"
+    },
+    {
+      "name": "面向对象编程",
+      "chapters": 80,
+      "path": "articles/面向对象编程",
+      "overview": "articles/面向对象编程/README.md"
+    },
+    {
+      "name": "音视频处理",
+      "chapters": 80,
+      "path": "articles/音视频处理",
+      "overview": "articles/音视频处理/README.md"
+    },
+    {
+      "name": "驱动开发",
+      "chapters": 100,
+      "path": "articles/驱动开发",
+      "overview": "articles/驱动开发/README.md"
+    }
+  ]
+}

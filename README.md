@@ -204,12 +204,24 @@
 
 1. **查看汇总索引**：打开 `domains_index.json` 查看所有领域列表
 2. **选择领域**：在 `domains/` 目录下找到对应领域的JSON文件
-3. **AI深度生成**：将JSON内容提供给AI，要求：
-   - 补充 `code_examples` 字段（添加实际可运行的代码示例）
-   - 补充 `diagrams` 字段（使用Mermaid添加架构图、流程图）
-   - 扩展 `summary` 为完整的章节内容
-   - 添加源码分析和框图讲解
-4. **批量处理**：可编写脚本批量读取所有JSON文件，生成完整的知识库文档
+3. **阅读教程文章**：在 `articles/` 目录下按领域文件夹阅读 Markdown 教程
+   - 每个领域包含 `README.md`（学习指南）与 `chapters/`（章节文章）
+   - 共 100 个领域、10000 篇章节文章 + 100 篇概述
+4. **重新生成文章**：运行 `python generate_articles.py` 从 JSON 生成全部教程
+5. **完整性检测**：运行 `python check_articles.py` 与 `python check_articles_deep.py` 校验结构、数量与链接
+
+### 文章目录结构
+
+```
+articles/
+├── index.json              # 全库索引
+├── React/
+│   ├── README.md           # React 学习指南（概述）
+│   └── chapters/
+│       ├── 001-xxx.md      # 各知识点章节
+│       └── ...
+└── ...（共 100 个领域文件夹）
+```
 
 ## 质量保证
 
