@@ -10,20 +10,24 @@
 from __future__ import annotations
 
 import argparse
+import asyncio
 import math
 import re
 import subprocess
 import textwrap
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import List, Optional, Tuple
+from typing import List, Tuple
 
 from PIL import Image, ImageDraw, ImageFont
 from pptx import Presentation
 from pptx.util import Inches
 
 FONT_PATH = "/usr/share/fonts/truetype/wqy/wqy-microhei.ttc"
-W, H = 1920, 1080
+# 默认竖屏 9:16，适合手机观看
+W, H = 1080, 1920
+IS_PORTRAIT = True
+DEFAULT_VOICE = "zh-CN-XiaoxiaoNeural"  # 女声；可选 zh-CN-YunxiNeural 男声
 
 # 深色科技风配色
 C_BG_TOP = (12, 18, 35)
@@ -56,6 +60,68 @@ class Slide:
     edges: List[Tuple[int, int]] = field(default_factory=list)
     subtitle: str = ""
     caption: str = ""
+    narration: str = ""
+
+
+def set_orientation(portrait: bool) -> None:
+    global W, H, IS_PORTRAIT
+    IS_PORTRAIT = portrait
+    W, H = (1080, 1920) if portrait else (1920, 1080)
+
+
+def narration_for(slide: Slide) -> str:
+    if slide.narration:
+        return slide.narration
+    if slide.kind == "title":
+        sub = slide.subtitle.replace("｜", "，") if slide.subtitle else ""
+        return f"欢迎学习本节内容：{slide.title}。{sub}我们将通过框图方式讲解核心知识。"
+    parts = [f"接下来看{slide.title}。"]
+    if slide.caption:
+        parts.append(slide.caption)
+    for node in slide.nodes[:6]:
+        seg = node.label
+        if node.detail:
+            seg += f"，{node.detail}"
+        parts.append(seg)
+    text = "。".join(parts)
+    return text[:600]
+
+
+async def synthesize_narration(text: str, out: Path, voice: str) -> None:
+    import edge_tts
+    communicate = edge_tts.Communicate(text, voice)
+    await communicate.save(str(out))
+
+
+def audio_duration(path: Path) -> float:
+    r = subprocess.run(
+        [
+            "ffprobe", "-v", "error", "-show_entries", "format=duration",
+            "-of", "default=noprint_wrappers=1:nokey=1", str(path),
+        ],
+        capture_output=True,
+        text=True,
+        check=True,
+    )
+    return float(r.stdout.strip())
+
+
+def generate_all_narrations(slides: List[Slide], audio_dir: Path, voice: str) -> List[float]:
+    async def _run() -> List[float]:
+        audio_dir.mkdir(parents=True, exist_ok=True)
+        durations: List[float] = []
+        for i, slide in enumerate(slides, 1):
+            text = narration_for(slide)
+            mp3 = audio_dir / f"slide_{i:02d}.mp3"
+            await synthesize_narration(text, mp3, voice)
+            durations.append(audio_duration(mp3))
+        return durations
+
+    return asyncio.run(_run())
+
+
+def _margin() -> int:
+    return 48 if IS_PORTRAIT else 72
 
 
 def _clean(text: str) -> str:
@@ -80,7 +146,11 @@ def _gradient_bg() -> Image.Image:
 
 
 def _draw_glow_orbs(draw: ImageDraw.ImageDraw) -> None:
-    for cx, cy, rad, col in [(220, 200, 180, (30, 58, 90)), (1680, 320, 240, (40, 50, 80)), (1500, 820, 160, (35, 55, 75))]:
+    if IS_PORTRAIT:
+        orbs = [(180, 320, 140, (30, 58, 90)), (900, 500, 200, (40, 50, 80)), (540, 1500, 160, (35, 55, 75))]
+    else:
+        orbs = [(220, 200, 180, (30, 58, 90)), (1680, 320, 240, (40, 50, 80)), (1500, 820, 160, (35, 55, 75))]
+    for cx, cy, rad, col in orbs:
         draw.ellipse([cx - rad, cy - rad, cx + rad, cy + rad], outline=col, width=2)
 
 
@@ -296,19 +366,18 @@ def parse_article(path: Path) -> tuple[str, str, List[Slide]]:
 
 
 def _node_box_size(n: int, horizontal: bool) -> Tuple[int, int, int, int]:
-    margin = 72
-    top = 160
-    if horizontal:
-        gap = 48
-        box_w = min(280, (W - 2 * margin - gap * (n - 1)) // max(n, 1))
-        box_h = 140
+    margin = _margin()
+    if horizontal and not IS_PORTRAIT:
+        gap = 40
+        box_w = min(260, (W - 2 * margin - gap * (n - 1)) // max(n, 1))
+        box_h = 120
         total_w = n * box_w + (n - 1) * gap
         start_x = (W - total_w) // 2
         return box_w, box_h, start_x, gap
-    gap = 36
-    box_w = 520
-    box_h = 100
-    start_x = (W - box_w) // 2
+    gap = 28 if IS_PORTRAIT else 36
+    box_w = W - 2 * margin
+    box_h = 100 if IS_PORTRAIT else 100
+    start_x = margin
     return box_w, box_h, start_x, gap
 
 
@@ -323,26 +392,31 @@ def render_title(slide: Slide, img: Image.Image, page: int) -> None:
     draw = ImageDraw.Draw(img)
     _draw_glow_orbs(draw)
     draw.rectangle([0, 0, W, 6], fill=PALETTE[0])
-    # 装饰框
-    _rounded_box(draw, (120, 200, W - 120, H - 200), fill=(22, 32, 50), outline=PALETTE[0], radius=32, width=2)
-    draw.text((200, 280), slide.title, font=_font(64), fill=C_TITLE)
+    m = _margin()
+    box_top = 220 if IS_PORTRAIT else 200
+    _rounded_box(draw, (m, box_top, W - m, H - box_top), fill=(22, 32, 50), outline=PALETTE[0], radius=32, width=2)
+    title_font = _font(52 if IS_PORTRAIT else 64)
+    draw.text((m + 40, box_top + 60), slide.title, font=title_font, fill=C_TITLE)
     if slide.subtitle:
-        draw.text((200, 400), slide.subtitle[:90], font=_font(26), fill=C_SUB)
+        draw.text((m + 40, box_top + 150), slide.subtitle[:80], font=_font(24), fill=C_SUB)
     if slide.caption:
-        _rounded_box(draw, (200, 500, 520, 560), fill=(56, 189, 248), outline=PALETTE[0], radius=12)
-        draw.text((220, 515), slide.caption, font=_font(24), fill=C_TITLE)
-    # 底部标签
+        _rounded_box(draw, (m + 40, box_top + 220, m + 400, box_top + 280), fill=(56, 189, 248), outline=PALETTE[0], radius=12)
+        draw.text((m + 56, box_top + 238), slide.caption, font=_font(22), fill=C_TITLE)
     tags = re.findall(r"[^｜|]+", slide.subtitle or "")
-    x = 200
+    x = m + 40
+    tag_y = box_top + 320 if IS_PORTRAIT else 620
     for i, tag in enumerate(tags[:4]):
         tag = tag.strip()
         if not tag:
             continue
-        bw = min(280, len(tag) * 18 + 40)
-        _rounded_box(draw, (x, 620, x + bw, 680), fill=(30, 45, 68), outline=PALETTE[(i + 1) % len(PALETTE)], radius=10)
-        draw.text((x + 16, 638), tag[:20], font=_font(22), fill=C_TITLE)
-        x += bw + 20
-    draw.text((W - 100, H - 50), f"{page:02d}", font=_font(24), fill=C_SUB)
+        bw = min(W - 2 * m - 80, len(tag) * 20 + 36)
+        _rounded_box(draw, (x, tag_y, x + bw, tag_y + 52), fill=(30, 45, 68), outline=PALETTE[(i + 1) % len(PALETTE)], radius=10)
+        draw.text((x + 12, tag_y + 14), tag[:18], font=_font(20), fill=C_TITLE)
+        x += bw + 16
+        if x > W - m - 100:
+            x = m + 40
+            tag_y += 64
+    draw.text((W - 80, H - 50), f"{page:02d}", font=_font(22), fill=C_SUB)
 
 
 def render_flow(slide: Slide, img: Image.Image, page: int, vertical: bool = False) -> None:
@@ -352,9 +426,10 @@ def render_flow(slide: Slide, img: Image.Image, page: int, vertical: bool = Fals
     n = len(nodes)
     if not n:
         return
-    box_w, box_h, start_x, gap = _node_box_size(n, not vertical)
+    use_vertical = vertical or IS_PORTRAIT
+    box_w, box_h, start_x, gap = _node_box_size(n, not use_vertical)
     positions: List[Tuple[int, int, int, int]] = []
-    if vertical:
+    if use_vertical:
         y = top + 40
         for i in range(n):
             positions.append((start_x, y, start_x + box_w, y + box_h))
@@ -377,7 +452,7 @@ def render_flow(slide: Slide, img: Image.Image, page: int, vertical: bool = Fals
         ay = (positions[a][1] + positions[a][3]) // 2
         bx = (positions[b][0] + positions[b][2]) // 2
         by = (positions[b][1] + positions[b][3]) // 2
-        if vertical:
+        if use_vertical:
             _arrow(draw, ax, positions[a][3], bx, positions[b][1], PALETTE[0])
         else:
             _arrow(draw, positions[a][2], ay, positions[b][0], by, PALETTE[0])
@@ -387,15 +462,16 @@ def render_cards(slide: Slide, img: Image.Image, page: int) -> None:
     draw = ImageDraw.Draw(img)
     top = _header(draw, slide.title, slide.caption, page)
     nodes = slide.nodes[:4]
-    cols = 2 if len(nodes) > 1 else 1
+    m = _margin()
+    cols = 1 if IS_PORTRAIT and len(nodes) > 2 else (2 if len(nodes) > 1 else 1)
     rows = math.ceil(len(nodes) / cols)
-    pad = 48
-    cw = (W - 2 * 72 - pad) // cols
-    ch = min(220, (H - top - 100 - pad * (rows - 1)) // max(rows, 1))
+    pad = 32 if IS_PORTRAIT else 48
+    cw = (W - 2 * m - pad * (cols - 1)) // cols
+    ch = min(200 if IS_PORTRAIT else 220, (H - top - 80 - pad * (rows - 1)) // max(rows, 1))
     for i, node in enumerate(nodes):
         row, col = divmod(i, cols)
-        x1 = 72 + col * (cw + pad)
-        y1 = top + 30 + row * (ch + pad)
+        x1 = m + col * (cw + pad)
+        y1 = top + 24 + row * (ch + pad)
         _draw_node(draw, (x1, y1, x1 + cw, y1 + ch), node)
 
 
@@ -421,19 +497,37 @@ def render_layers(slide: Slide, img: Image.Image, page: int) -> None:
 def render_hub(slide: Slide, img: Image.Image, page: int) -> None:
     draw = ImageDraw.Draw(img)
     top = _header(draw, slide.title, slide.caption, page)
-    cx, cy = W // 2, top + 280
-    _rounded_box(draw, (cx - 120, cy - 60, cx + 120, cy + 60), fill=(56, 189, 248), outline=PALETTE[0], radius=24, width=3)
-    draw.text((cx - 80, cy - 18), slide.title[:12], font=_font(30), fill=C_TITLE)
+    m = _margin()
     satellites = slide.nodes[:5]
-    radius = 280
-    for i, node in enumerate(satellites):
-        ang = -math.pi / 2 + 2 * math.pi * i / len(satellites)
-        sx = int(cx + radius * math.cos(ang))
-        sy = int(cy + radius * math.sin(ang))
-        bw, bh = 200, 90
-        box = (sx - bw // 2, sy - bh // 2, sx + bw // 2, sy + bh // 2)
-        _draw_node(draw, box, node)
-        _arrow(draw, cx + 100 * math.cos(ang), cy + 50 * math.sin(ang), sx - (bw // 2 - 10) * math.cos(ang), sy - (bh // 2 - 10) * math.sin(ang), PALETTE[i % len(PALETTE)])
+    if IS_PORTRAIT:
+        cx = W // 2
+        cy = top + 100
+        _rounded_box(draw, (cx - 140, cy - 50, cx + 140, cy + 50), fill=(56, 189, 248), outline=PALETTE[0], radius=20, width=3)
+        draw.text((cx - 120, cy - 16), slide.title[:14], font=_font(26), fill=C_TITLE)
+        y = cy + 80
+        bw = W - 2 * m
+        bh = 88
+        for i, node in enumerate(satellites):
+            box = (m, y, m + bw, y + bh)
+            _draw_node(draw, box, node)
+            if i == 0:
+                _arrow(draw, cx, cy + 50, cx, y, PALETTE[0])
+            else:
+                _arrow(draw, cx, y - 20, cx, y, PALETTE[i % len(PALETTE)])
+            y += bh + 24
+    else:
+        cx, cy = W // 2, top + 280
+        _rounded_box(draw, (cx - 120, cy - 60, cx + 120, cy + 60), fill=(56, 189, 248), outline=PALETTE[0], radius=24, width=3)
+        draw.text((cx - 80, cy - 18), slide.title[:12], font=_font(30), fill=C_TITLE)
+        radius = 280
+        for i, node in enumerate(satellites):
+            ang = -math.pi / 2 + 2 * math.pi * i / len(satellites)
+            sx = int(cx + radius * math.cos(ang))
+            sy = int(cy + radius * math.sin(ang))
+            bw, bh = 200, 90
+            box = (sx - bw // 2, sy - bh // 2, sx + bw // 2, sy + bh // 2)
+            _draw_node(draw, box, node)
+            _arrow(draw, cx + 100 * math.cos(ang), cy + 50 * math.sin(ang), sx - (bw // 2 - 10) * math.cos(ang), sy - (bh // 2 - 10) * math.sin(ang), PALETTE[i % len(PALETTE)])
 
 
 def render_slide(slide: Slide, page: int, out: Path) -> None:
@@ -456,13 +550,76 @@ def render_slide(slide: Slide, page: int, out: Path) -> None:
 
 def build_pptx(image_paths: List[Path], out: Path) -> None:
     prs = Presentation()
-    prs.slide_width = Inches(13.333)
-    prs.slide_height = Inches(7.5)
+    if IS_PORTRAIT:
+        prs.slide_width = Inches(7.5)
+        prs.slide_height = Inches(13.333)
+    else:
+        prs.slide_width = Inches(13.333)
+        prs.slide_height = Inches(7.5)
     blank = prs.slide_layouts[6]
     for p in image_paths:
         s = prs.slides.add_slide(blank)
         s.shapes.add_picture(str(p.resolve()), 0, 0, width=prs.slide_width, height=prs.slide_height)
     prs.save(out)
+
+
+def build_video_with_narration(
+    image_dir: Path,
+    audio_dir: Path,
+    durations: List[float],
+    out: Path,
+    min_pad: float = 0.4,
+) -> None:
+    images = sorted(image_dir.glob("slide_*.png"))
+    audios = sorted(audio_dir.glob("slide_*.mp3"))
+    if not images:
+        raise RuntimeError("无幻灯片图片")
+    slide_durations = [max(d + min_pad, 2.5) for d in durations[:len(images)]]
+    while len(slide_durations) < len(images):
+        slide_durations.append(4.0)
+
+    list_file = image_dir / "ffmpeg_list.txt"
+    lines = []
+    for img, dur in zip(images, slide_durations):
+        lines.append(f"file '{img.resolve()}'")
+        lines.append(f"duration {dur:.3f}")
+    lines.append(f"file '{images[-1].resolve()}'")
+    list_file.write_text("\n".join(lines), encoding="utf-8")
+
+    silent = image_dir / "_silent.mp4"
+    subprocess.run(
+        [
+            "ffmpeg", "-y", "-f", "concat", "-safe", "0", "-i", str(list_file),
+            "-vf", f"fps=30,format=yuv420p,scale={W}:{H}",
+            "-c:v", "libx264", "-pix_fmt", "yuv420p", str(silent),
+        ],
+        check=True,
+        capture_output=True,
+    )
+
+    if audios:
+        audio_list = audio_dir / "audio_concat.txt"
+        audio_list.write_text(
+            "\n".join(f"file '{a.resolve()}'" for a in audios[:len(images)]),
+            encoding="utf-8",
+        )
+        narration = audio_dir / "_narration.mp3"
+        subprocess.run(
+            ["ffmpeg", "-y", "-f", "concat", "-safe", "0", "-i", str(audio_list), "-c", "copy", str(narration)],
+            check=True,
+            capture_output=True,
+        )
+        subprocess.run(
+            [
+                "ffmpeg", "-y", "-i", str(silent), "-i", str(narration),
+                "-c:v", "copy", "-c:a", "aac", "-b:a", "192k", "-shortest",
+                str(out),
+            ],
+            check=True,
+            capture_output=True,
+        )
+    else:
+        silent.rename(out)
 
 
 def build_video(image_dir: Path, out: Path, duration: float) -> None:
@@ -486,17 +643,23 @@ def build_video(image_dir: Path, out: Path, duration: float) -> None:
 
 
 def main():
-    parser = argparse.ArgumentParser(description="从 Markdown 生成框图风格 PPT/视频")
+    parser = argparse.ArgumentParser(description="从 Markdown 生成框图风格 PPT/视频（支持竖屏+讲解）")
     parser.add_argument("article", type=Path)
     parser.add_argument("-o", "--output-dir", type=Path, default=Path("ppt_output"))
-    parser.add_argument("--seconds", type=float, default=4.5)
+    parser.add_argument("--seconds", type=float, default=4.5, help="无配音时每页秒数")
+    parser.add_argument("--landscape", action="store_true", help="横屏 16:9（默认竖屏 9:16）")
+    parser.add_argument("--no-voice", action="store_true", help="不生成讲解配音")
+    parser.add_argument("--voice", type=str, default=DEFAULT_VOICE, help="edge-tts 语音 ID")
     args = parser.parse_args()
+
+    set_orientation(not args.landscape)
 
     article = args.article.resolve()
     title, _, slides = parse_article(article)
     safe = re.sub(r"[^\w\u4e00-\u9fff-]+", "_", title)[:40].strip("_")
     out_dir = args.output_dir.resolve() / safe
     img_dir = out_dir / "slides"
+    audio_dir = out_dir / "audio"
     img_dir.mkdir(parents=True, exist_ok=True)
 
     paths: List[Path] = []
@@ -505,15 +668,26 @@ def main():
         render_slide(slide, i, p)
         paths.append(p)
 
-    pptx_path = out_dir / f"{safe}.pptx"
-    video_path = out_dir / f"{safe}_video.mp4"
+    suffix = "_竖屏" if IS_PORTRAIT else "_横屏"
+    pptx_path = out_dir / f"{safe}{suffix}.pptx"
+    video_path = out_dir / f"{safe}{suffix}_讲解.mp4"
     build_pptx(paths, pptx_path)
-    build_video(img_dir, video_path, args.seconds)
 
+    if args.no_voice:
+        build_video(img_dir, video_path, args.seconds)
+    else:
+        print("正在生成讲解配音…")
+        durations = generate_all_narrations(slides, audio_dir, args.voice)
+        build_video_with_narration(img_dir, audio_dir, durations, video_path)
+
+    orient = "竖屏 9:16" if IS_PORTRAIT else "横屏 16:9"
     print(f"标题: {title}")
-    print(f"幻灯片: {len(slides)} 页（框图为主）")
+    print(f"方向: {orient}")
+    print(f"幻灯片: {len(slides)} 页")
     print(f"PPTX: {pptx_path}")
     print(f"视频: {video_path}")
+    if not args.no_voice:
+        print(f"配音: {audio_dir}")
 
 
 if __name__ == "__main__":
