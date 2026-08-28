@@ -65,11 +65,30 @@ def _get_raw_modules() -> Dict:
 _RAW_MODULES, _RAW_OVERVIEWS = _load_all_content()
 
 
+_FILL_FIELDS = (
+    "intro", "mechanism", "internals", "workflow", "performance",
+    "security", "case_study", "comparison", "debugging", "configuration",
+)
+
+
+def _enrich_module_dict(domain: str, module: str, d: dict) -> dict:
+    """稀疏内容库条目补全缺失字段，保留已有专项 concepts/pitfalls"""
+    if all((d.get(f) or "").strip() for f in _FILL_FIELDS[:4]):
+        return d
+    from article_generator.manual._gen_backend_data import _generate_module
+    full = _generate_module(domain, module)
+    merged = dict(full)
+    for key, val in d.items():
+        if val:
+            merged[key] = val
+    return merged
+
+
 def get_module_knowledge(domain: str, module: str, category: str = "") -> ModuleKnowledge:
     key = (domain, module)
     raw = _get_raw_modules()
     if key in raw:
-        return _dict_to_knowledge(domain, module, raw[key])
+        return _dict_to_knowledge(domain, module, _enrich_module_dict(domain, module, raw[key]))
 
     # 回退：基于领域技术栈生成专项内容（非 JSON 模板）
     return _synthesize_knowledge(domain, module, category)
