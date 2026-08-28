@@ -309,13 +309,104 @@ def _arrow(draw: ImageDraw.ImageDraw, x1: int, y1: int, x2: int, y2: int, color:
 
 
 def _header(draw: ImageDraw.ImageDraw, title: str, subtitle: str = "", page: int = 0) -> int:
+    m = _margin()
     draw.rectangle([0, 0, W, 6], fill=PALETTE[0])
-    draw.text((72, 42), title[:48], font=_font(44), fill=C_TITLE)
+    title_font = _font(40 if IS_PORTRAIT else 44)
+    draw.text((m, 36), title[:48], font=title_font, fill=C_TITLE)
+    bottom = 88
     if subtitle:
-        draw.text((72, 98), subtitle[:100], font=_font(24), fill=C_SUB)
+        draw.text((m, 88), subtitle[:100], font=_font(22), fill=C_SUB)
+        bottom = 118
     if page:
-        draw.text((W - 100, H - 50), f"{page:02d}", font=_font(24), fill=C_SUB)
-    return 150 if subtitle else 130
+        draw.text((W - m - 40, H - 48), f"{page:02d}", font=_font(22), fill=C_SUB)
+    return bottom
+
+
+def _content_area(header_bottom: int) -> Tuple[int, int, int, int]:
+    """内容区矩形 (left, top, right, bottom)，尽量占满标题下方至页脚之间的空间。"""
+    m = _margin()
+    top = header_bottom + 16
+    bottom = H - 56
+    return (m, top, W - m, bottom)
+
+
+def _layout_boxes_vertical(
+    n: int,
+    area: Tuple[int, int, int, int],
+    min_box_h: int = 72,
+) -> List[Tuple[int, int, int, int]]:
+    left, top, right, bottom = area
+    if n <= 0:
+        return []
+    height = bottom - top
+    gap = max(10, height // (n * 6 + 4))
+    total_gap = gap * max(0, n - 1)
+    box_h = max(min_box_h, (height - total_gap) // n)
+    if n * box_h + total_gap > height:
+        box_h = (height - total_gap) // n
+    boxes: List[Tuple[int, int, int, int]] = []
+    y = top
+    for _ in range(n):
+        boxes.append((left, y, right, y + box_h))
+        y += box_h + gap
+    return boxes
+
+
+def _layout_boxes_horizontal(
+    n: int,
+    area: Tuple[int, int, int, int],
+    min_box_w: int = 100,
+) -> List[Tuple[int, int, int, int]]:
+    left, top, right, bottom = area
+    if n <= 0:
+        return []
+    width = right - left
+    height = bottom - top
+    gap = max(14, width // (n * 8 + 2))
+    total_gap = gap * max(0, n - 1)
+    box_w = max(min_box_w, (width - total_gap) // n)
+    if n * box_w + total_gap > width:
+        box_w = (width - total_gap) // n
+    boxes: List[Tuple[int, int, int, int]] = []
+    x = left
+    for _ in range(n):
+        boxes.append((x, top, x + box_w, bottom))
+        x += box_w + gap
+    return boxes
+
+
+def _layout_grid(
+    n: int,
+    area: Tuple[int, int, int, int],
+    cols: int,
+    min_box_h: int = 72,
+) -> List[Tuple[int, int, int, int]]:
+    left, top, right, bottom = area
+    if n <= 0:
+        return []
+    cols = max(1, min(cols, n))
+    rows = math.ceil(n / cols)
+    width = right - left
+    height = bottom - top
+    gap_x = max(14, width // 16)
+    gap_y = max(10, height // (rows * 6 + 2))
+    total_gap_x = gap_x * (cols - 1)
+    total_gap_y = gap_y * (rows - 1)
+    box_w = (width - total_gap_x) // cols
+    box_h = max(min_box_h, (height - total_gap_y) // rows)
+    if rows * box_h + total_gap_y > height:
+        box_h = (height - total_gap_y) // rows
+    boxes: List[Tuple[int, int, int, int]] = []
+    for i in range(n):
+        row = i // cols
+        col = i % cols
+        items_in_row = min(cols, n - row * cols)
+        row_w = items_in_row * box_w + (items_in_row - 1) * gap_x
+        row_x = left + (width - row_w) // 2
+        x = row_x + col * (box_w + gap_x)
+        y = top + row * (box_h + gap_y)
+        boxes.append((x, y, x + box_w, y + box_h))
+    return boxes
 
 
 def parse_mermaid(body: str) -> Tuple[List[Node], List[Tuple[int, int]], str]:
@@ -468,22 +559,6 @@ def parse_article(path: Path) -> tuple[str, str, List[Slide]]:
     return title, meta, slides
 
 
-def _node_box_size(n: int, horizontal: bool) -> Tuple[int, int, int, int]:
-    margin = _margin()
-    if horizontal and not IS_PORTRAIT:
-        gap = 40
-        box_w = min(260, (W - 2 * margin - gap * (n - 1)) // max(n, 1))
-        box_h = 120
-        total_w = n * box_w + (n - 1) * gap
-        start_x = (W - total_w) // 2
-        return box_w, box_h, start_x, gap
-    gap = 28 if IS_PORTRAIT else 36
-    box_w = W - 2 * margin
-    box_h = 100 if IS_PORTRAIT else 100
-    start_x = margin
-    return box_w, box_h, start_x, gap
-
-
 def _draw_node(draw: ImageDraw.ImageDraw, box: Tuple[int, int, int, int], node: Node) -> None:
     color = PALETTE[node.color_idx % len(PALETTE)]
     inner = (tuple(max(0, c - 80) for c in color))
@@ -496,19 +571,23 @@ def render_title(slide: Slide, img: Image.Image, page: int) -> None:
     _draw_glow_orbs(draw)
     draw.rectangle([0, 0, W, 6], fill=PALETTE[0])
     m = _margin()
-    box_top = 220 if IS_PORTRAIT else 200
-    _rounded_box(draw, (m, box_top, W - m, H - box_top), fill=(22, 32, 50), outline=PALETTE[0], radius=32, width=2)
+    box_top = 140 if IS_PORTRAIT else 120
+    box_bottom = H - 72
+    _rounded_box(draw, (m, box_top, W - m, box_bottom), fill=(22, 32, 50), outline=PALETTE[0], radius=32, width=2)
+    inner_h = box_bottom - box_top
     title_font = _font(52 if IS_PORTRAIT else 64)
-    draw.text((m + 40, box_top + 60), slide.title, font=title_font, fill=C_TITLE)
+    title_y = box_top + inner_h // 8
+    draw.text((m + 40, title_y), slide.title, font=title_font, fill=C_TITLE)
     if slide.subtitle:
-        draw.text((m + 40, box_top + 150), slide.subtitle[:80], font=_font(24), fill=C_SUB)
+        draw.text((m + 40, title_y + 90), slide.subtitle[:80], font=_font(24), fill=C_SUB)
     if slide.caption:
-        _rounded_box(draw, (m + 40, box_top + 220, m + 400, box_top + 280), fill=(56, 189, 248), outline=PALETTE[0], radius=12)
-        draw.text((m + 56, box_top + 238), slide.caption, font=_font(22), fill=C_TITLE)
+        cap_y = title_y + 170
+        _rounded_box(draw, (m + 40, cap_y, m + 420, cap_y + 56), fill=(56, 189, 248), outline=PALETTE[0], radius=12)
+        draw.text((m + 56, cap_y + 16), slide.caption, font=_font(22), fill=C_TITLE)
     tags = re.findall(r"[^｜|]+", slide.subtitle or "")
     x = m + 40
-    tag_y = box_top + 320 if IS_PORTRAIT else 620
-    for i, tag in enumerate(tags[:4]):
+    tag_y = box_top + inner_h // 2
+    for i, tag in enumerate(tags[:6]):
         tag = tag.strip()
         if not tag:
             continue
@@ -519,7 +598,7 @@ def render_title(slide: Slide, img: Image.Image, page: int) -> None:
         if x > W - m - 100:
             x = m + 40
             tag_y += 64
-    draw.text((W - 80, H - 50), f"{page:02d}", font=_font(22), fill=C_SUB)
+    draw.text((W - m - 20, H - 48), f"{page:02d}", font=_font(22), fill=C_SUB)
 
 
 def render_flow(slide: Slide, img: Image.Image, page: int, vertical: bool = False) -> None:
@@ -529,20 +608,12 @@ def render_flow(slide: Slide, img: Image.Image, page: int, vertical: bool = Fals
     n = len(nodes)
     if not n:
         return
+    area = _content_area(top)
     use_vertical = vertical or IS_PORTRAIT
-    box_w, box_h, start_x, gap = _node_box_size(n, not use_vertical)
-    positions: List[Tuple[int, int, int, int]] = []
     if use_vertical:
-        y = top + 40
-        for i in range(n):
-            positions.append((start_x, y, start_x + box_w, y + box_h))
-            y += box_h + gap
+        positions = _layout_boxes_vertical(n, area)
     else:
-        x = start_x
-        y = top + 80
-        for i in range(n):
-            positions.append((x, y, x + box_w, y + box_h))
-            x += box_w + gap
+        positions = _layout_boxes_horizontal(n, area)
 
     for i, node in enumerate(nodes):
         _draw_node(draw, positions[i], node)
@@ -551,86 +622,63 @@ def render_flow(slide: Slide, img: Image.Image, page: int, vertical: bool = Fals
     for a, b in edge_list:
         if a >= len(positions) or b >= len(positions):
             continue
-        ax = (positions[a][0] + positions[a][2]) // 2
-        ay = (positions[a][1] + positions[a][3]) // 2
-        bx = (positions[b][0] + positions[b][2]) // 2
-        by = (positions[b][1] + positions[b][3]) // 2
         if use_vertical:
-            _arrow(draw, ax, positions[a][3], bx, positions[b][1], PALETTE[0])
+            cx = (positions[a][0] + positions[a][2]) // 2
+            _arrow(draw, cx, positions[a][3], cx, positions[b][1], PALETTE[0])
         else:
-            _arrow(draw, positions[a][2], ay, positions[b][0], by, PALETTE[0])
+            cy = (positions[a][1] + positions[a][3]) // 2
+            _arrow(draw, positions[a][2], cy, positions[b][0], cy, PALETTE[0])
 
 
 def render_cards(slide: Slide, img: Image.Image, page: int) -> None:
     draw = ImageDraw.Draw(img)
     top = _header(draw, slide.title, slide.caption, page)
     nodes = slide.nodes[:4]
-    m = _margin()
-    cols = 1 if IS_PORTRAIT and len(nodes) > 2 else (2 if len(nodes) > 1 else 1)
-    rows = math.ceil(len(nodes) / cols)
-    pad = 32 if IS_PORTRAIT else 48
-    cw = (W - 2 * m - pad * (cols - 1)) // cols
-    ch = min(200 if IS_PORTRAIT else 220, (H - top - 80 - pad * (rows - 1)) // max(rows, 1))
+    area = _content_area(top)
+    n = len(nodes)
+    if IS_PORTRAIT:
+        cols = 1 if n > 2 else min(2, n)
+    else:
+        cols = 2 if n > 1 else 1
+    boxes = _layout_grid(n, area, cols)
     for i, node in enumerate(nodes):
-        row, col = divmod(i, cols)
-        x1 = m + col * (cw + pad)
-        y1 = top + 24 + row * (ch + pad)
-        _draw_node(draw, (x1, y1, x1 + cw, y1 + ch), node)
+        _draw_node(draw, boxes[i], node)
 
 
 def render_layers(slide: Slide, img: Image.Image, page: int) -> None:
     draw = ImageDraw.Draw(img)
     top = _header(draw, slide.title, slide.caption, page)
     nodes = slide.nodes[:8]
-    layer_h = min(110, (H - top - 80) // max(len(nodes), 1))
+    area = _content_area(top)
+    boxes = _layout_boxes_vertical(len(nodes), area, min_box_h=56)
     for i, node in enumerate(nodes):
-        y1 = top + 20 + i * (layer_h + 16)
-        margin = 80 + i * 30
-        _rounded_box(draw, (margin, y1, W - margin, y1 + layer_h), fill=(25, 35, 55), outline=PALETTE[i % len(PALETTE)], radius=14, width=2)
-        draw.text((margin + 24, y1 + 16), node.label[:50], font=_font(28), fill=C_TITLE)
-        if node.detail:
-            draw.text((margin + 24, y1 + 56), node.detail[:60], font=_font(20), fill=C_SUB)
-    # 层间箭头
-    for i in range(len(nodes) - 1):
-        y1 = top + 20 + i * (layer_h + 16) + layer_h
-        y2 = y1 + 16
-        _arrow(draw, W // 2, y1, W // 2, y2 + 20, PALETTE[0])
+        x1, y1, x2, y2 = boxes[i]
+        color = PALETTE[i % len(PALETTE)]
+        _rounded_box(draw, (x1, y1, x2, y2), fill=(25, 35, 55), outline=color, radius=14, width=2)
+        _text_centered(draw, (x1, y1, x2, y2), node.label, node.detail, _font(26), _font(18), C_TITLE)
+    for i in range(len(boxes) - 1):
+        cx = (boxes[i][0] + boxes[i][2]) // 2
+        _arrow(draw, cx, boxes[i][3], cx, boxes[i + 1][1], PALETTE[0])
 
 
 def render_hub(slide: Slide, img: Image.Image, page: int) -> None:
     draw = ImageDraw.Draw(img)
     top = _header(draw, slide.title, slide.caption, page)
-    m = _margin()
+    area = _content_area(top)
+    left, ct, right, cb = area
+    hub_h = max(72, (cb - ct) // 9)
+    cx = (left + right) // 2
+    _rounded_box(draw, (left, ct, right, ct + hub_h), fill=(56, 189, 248), outline=PALETTE[0], radius=18, width=3)
+    _text_centered(draw, (left, ct, right, ct + hub_h), slide.title[:16], "", _font(28), _font(20), C_TITLE)
+    sub_area = (left, ct + hub_h + 14, right, cb)
     satellites = slide.nodes[:5]
-    if IS_PORTRAIT:
-        cx = W // 2
-        cy = top + 100
-        _rounded_box(draw, (cx - 140, cy - 50, cx + 140, cy + 50), fill=(56, 189, 248), outline=PALETTE[0], radius=20, width=3)
-        draw.text((cx - 120, cy - 16), slide.title[:14], font=_font(26), fill=C_TITLE)
-        y = cy + 80
-        bw = W - 2 * m
-        bh = 88
-        for i, node in enumerate(satellites):
-            box = (m, y, m + bw, y + bh)
-            _draw_node(draw, box, node)
-            if i == 0:
-                _arrow(draw, cx, cy + 50, cx, y, PALETTE[0])
-            else:
-                _arrow(draw, cx, y - 20, cx, y, PALETTE[i % len(PALETTE)])
-            y += bh + 24
-    else:
-        cx, cy = W // 2, top + 280
-        _rounded_box(draw, (cx - 120, cy - 60, cx + 120, cy + 60), fill=(56, 189, 248), outline=PALETTE[0], radius=24, width=3)
-        draw.text((cx - 80, cy - 18), slide.title[:12], font=_font(30), fill=C_TITLE)
-        radius = 280
-        for i, node in enumerate(satellites):
-            ang = -math.pi / 2 + 2 * math.pi * i / len(satellites)
-            sx = int(cx + radius * math.cos(ang))
-            sy = int(cy + radius * math.sin(ang))
-            bw, bh = 200, 90
-            box = (sx - bw // 2, sy - bh // 2, sx + bw // 2, sy + bh // 2)
-            _draw_node(draw, box, node)
-            _arrow(draw, cx + 100 * math.cos(ang), cy + 50 * math.sin(ang), sx - (bw // 2 - 10) * math.cos(ang), sy - (bh // 2 - 10) * math.sin(ang), PALETTE[i % len(PALETTE)])
+    boxes = _layout_boxes_vertical(len(satellites), sub_area, min_box_h=56)
+    for i, node in enumerate(satellites):
+        _draw_node(draw, boxes[i], node)
+        if i == 0:
+            _arrow(draw, cx, ct + hub_h, cx, boxes[i][1], PALETTE[0])
+        else:
+            _arrow(draw, cx, boxes[i - 1][3], cx, boxes[i][1], PALETTE[i % len(PALETTE)])
 
 
 def render_slide(slide: Slide, page: int, out: Path) -> None:

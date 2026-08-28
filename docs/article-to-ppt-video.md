@@ -22,12 +22,20 @@
 ## 二、怎么用
 
 ```bash
-pip install python-pptx pillow edge-tts
-# 系统需安装 ffmpeg
+pip install -r .cursor/skills/article-ppt-video/requirements.txt
+# 系统需安装 ffmpeg、fonts-wqy-microhei（见下方环境搭建）
 
-python3 generate_ppt_from_article.py \
+python3 .cursor/skills/article-ppt-video/generate_ppt_from_article.py \
   "articles/React/chapters/001-React基础核心概念与原理.md" \
   -o ppt_output
+```
+
+或使用同目录一键脚本：
+
+```bash
+.cursor/skills/article-ppt-video/run.sh \
+  "articles/React/chapters/001-React基础核心概念与原理.md" \
+  --voice-preset duo
 ```
 
 默认产出：
@@ -45,17 +53,17 @@ python3 generate_ppt_from_article.py \
 
 ```bash
 # 查看预设与全部中文语音
-python3 generate_ppt_from_article.py --list-voices
+python3 .cursor/skills/article-ppt-video/generate_ppt_from_article.py --list-voices
 
 # 预设：女声 duo=女+男轮换 mix=四人轮换 dialect=方言
-python3 generate_ppt_from_article.py "articles/..." --voice-preset duo
+python3 .cursor/skills/article-ppt-video/generate_ppt_from_article.py "articles/..." --voice-preset duo
 
 # 自定义多个发音人（按页轮换）
-python3 generate_ppt_from_article.py "articles/..." \
+python3 .cursor/skills/article-ppt-video/generate_ppt_from_article.py "articles/..." \
   --voices zh-CN-XiaoxiaoNeural,zh-CN-YunxiNeural,zh-CN-XiaoyiNeural
 
 # 按版式分配：封面用第一个，流程类用第二个，其余轮换
-python3 generate_ppt_from_article.py "articles/..." --voice-preset duo --voice-mode by_kind
+python3 .cursor/skills/article-ppt-video/generate_ppt_from_article.py "articles/..." --voice-preset duo --voice-mode by_kind
 ```
 
 | 预设 | 包含发音人 |
@@ -107,22 +115,44 @@ ffmpeg 混流 → 最终 MP4（画面 + 旁白）
 
 ---
 
-## 六、给其他 AI Agent
+## 六、环境搭建
 
-仓库内已添加 Skill，路径：
+完整步骤见 Skill 目录下的 README：
 
 ```
-.cursor/skills/article-ppt-video/SKILL.md
+.cursor/skills/article-ppt-video/README.md
 ```
 
-其他 Cursor / Cloud Agent 读到该 Skill 后，应按其中步骤安装依赖、运行 `generate_ppt_from_article.py`，并把成片放到 artifacts 用 `<video>` 展示给用户。
+简要命令：
+
+```bash
+sudo apt-get install -y ffmpeg fonts-wqy-microhei
+pip install -r .cursor/skills/article-ppt-video/requirements.txt
+```
+
+## 七、给其他 AI Agent
+
+仓库内已添加 Skill（**脚本与 Skill 同目录**）：
+
+```
+.cursor/skills/article-ppt-video/
+  SKILL.md
+  generate_ppt_from_article.py
+  README.md
+  requirements.txt
+  run.sh
+```
+
+其他 Cursor / Cloud Agent 读到 `SKILL.md` 后，应按其中步骤安装依赖、运行脚本，并把成片放到 artifacts 用 `<video>` 展示给用户。
+
+框图布局会尽量**铺满标题下方内容区**（竖屏纵向等分、网格卡片），避免仅顶部或左侧一小块、其余留白。
 
 ---
 
-## 七、局限与后续
+## 八、局限与后续
 
 - 当前为 **程序化框图**，不是设计师级模板；美观度来自统一配色与圆角卡片。
 - 旁白偏「念要点」，时长随内容自动变长；可用 `--rate` 加速或改短 `narration_for` 文案。
 - 尚未支持：页间转场动画、背景音乐、真人音色克隆。
 
-如需增强，可在 `generate_ppt_from_article.py` 的 `render_*` 函数中改视觉，或在 ffmpeg 步骤加滤镜与第二条音轨。
+如需增强，可在 `.cursor/skills/article-ppt-video/generate_ppt_from_article.py` 的 `render_*` 函数中改视觉，或在 ffmpeg 步骤加滤镜与第二条音轨。
