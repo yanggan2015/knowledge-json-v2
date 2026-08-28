@@ -1,0 +1,10 @@
+{
+  "json_chapters": 10000,
+  "chapter_files": 10000,
+  "readme_count": 100,
+  "total_articles": 10100,
+  "empty_files": [],
+  "errors": [],
+  "warnings": [],
+  "passed": true
+}
