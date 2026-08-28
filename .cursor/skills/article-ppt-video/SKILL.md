@@ -59,22 +59,23 @@ cp -r ppt_output/<标题> /opt/cursor/artifacts/ppt-demo/
 
 | 参数 | 含义 | 示例 |
 |------|------|------|
-| `--voice` | 发音人 | `zh-CN-XiaoxiaoNeural`（女声）、`zh-CN-YunxiNeural`（男声） |
-| `--rate` | 语速 | `+15%` 更快，`-10%` 更慢 |
-| `--volume` | 音量 | `+20%` 更大，`-15%` 更小 |
-| `--pitch` | 音调 | `+5Hz` 偏高，`-3Hz` 偏低 |
+| `--voice` | 单个发音人 | `zh-CN-XiaoxiaoNeural` |
+| `--voices` | 多个发音人（逗号分隔，按页轮换） | `zh-CN-XiaoxiaoNeural,zh-CN-YunxiNeural` |
+| `--voice-preset` | 预设组合 | `duo`（女+男）、`female`、`male`、`mix`、`dialect` |
+| `--voice-mode` | 多发音人策略 | `rotate` 按页轮换 / `single` 固定第一个 / `by_kind` 按版式 |
+| `--rate` | 语速 | `+15%` 更快 |
+| `--volume` | 音量 | `+20%` 更响 |
+| `--pitch` | 音调 | `+5Hz` |
 
-列出中文语音：
+列出预设与中文语音：`python3 generate_ppt_from_article.py --list-voices`
+
+示例：男女声轮换讲解：
 
 ```bash
-python3 generate_ppt_from_article.py --list-voices articles/React/chapters/001-*.md
-```
-
-示例：稍快、稍响的男声讲解：
-
-```bash
+python3 generate_ppt_from_article.py "articles/..." --voice-preset duo
+# 或
 python3 generate_ppt_from_article.py "articles/..." \
-  --voice zh-CN-YunxiNeural --rate "+10%" --volume "+15%" --pitch "+0Hz"
+  --voices zh-CN-XiaoxiaoNeural,zh-CN-YunxiNeural --voice-mode rotate
 ```
 
 无配音仅幻灯片视频：

@@ -39,27 +39,43 @@ python3 generate_ppt_from_article.py \
 
 ---
 
-## 三、声音能不能调？
+## 三、发音人多种选择
 
-可以。旁白由 **edge-tts** 生成，支持：
-
-| 命令行参数 | 作用 | 示例 |
-|------------|------|------|
-| `--voice` | 换发音人 | `zh-CN-YunxiNeural`（男声） |
-| `--rate` | 语速 | `+15%` 更快，`-10%` 更慢 |
-| `--volume` | 音量 | `+20%` 更响 |
-| `--pitch` | 音调 | `+5Hz` 略高 |
+支持 **单个**、**多个轮换**、**预设组合** 三种方式：
 
 ```bash
-# 稍快、稍响的男声
-python3 generate_ppt_from_article.py "articles/..." \
-  --voice zh-CN-YunxiNeural \
-  --rate "+12%" \
-  --volume "+18%"
+# 查看预设与全部中文语音
+python3 generate_ppt_from_article.py --list-voices
 
-# 查看中文语音列表
-python3 generate_ppt_from_article.py --list-voices "articles/..."
+# 预设：女声 duo=女+男轮换 mix=四人轮换 dialect=方言
+python3 generate_ppt_from_article.py "articles/..." --voice-preset duo
+
+# 自定义多个发音人（按页轮换）
+python3 generate_ppt_from_article.py "articles/..." \
+  --voices zh-CN-XiaoxiaoNeural,zh-CN-YunxiNeural,zh-CN-XiaoyiNeural
+
+# 按版式分配：封面用第一个，流程类用第二个，其余轮换
+python3 generate_ppt_from_article.py "articles/..." --voice-preset duo --voice-mode by_kind
 ```
+
+| 预设 | 包含发音人 |
+|------|------------|
+| `female` | 晓晓、晓伊（女声） |
+| `male` | 云希、云健、云扬（男声） |
+| `duo` | 晓晓 + 云希（推荐对谈感） |
+| `mix` | 4 种音色轮换 |
+| `dialect` | 东北、陕西方言女声 |
+
+每页实际使用的发音人会写入 `audio/voices_used.txt`。
+
+语速/音量/音调仍可调：
+
+| 参数 | 作用 | 示例 |
+|------|------|------|
+| `--voice` | 单个发音人 | `zh-CN-YunxiNeural` |
+| `--rate` | 语速 | `+12%` |
+| `--volume` | 音量 | `+18%` |
+| `--pitch` | 音调 | `+5Hz` |
 
 每页讲什么由脚本里的 `narration_for()` 根据框图标题和节点自动生成；若要完全自定义，可在代码里给 `Slide.narration` 写字段。
 

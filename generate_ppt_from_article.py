@@ -29,6 +29,36 @@ W, H = 1080, 1920
 IS_PORTRAIT = True
 DEFAULT_VOICE = "zh-CN-XiaoxiaoNeural"  # 女声；可选 zh-CN-YunxiNeural 男声
 
+# 推荐发音人预设（--voice-preset）
+VOICE_PRESETS: dict[str, list[str]] = {
+    "female": ["zh-CN-XiaoxiaoNeural", "zh-CN-XiaoyiNeural"],
+    "male": ["zh-CN-YunxiNeural", "zh-CN-YunjianNeural", "zh-CN-YunyangNeural"],
+    "duo": ["zh-CN-XiaoxiaoNeural", "zh-CN-YunxiNeural"],  # 女声+男声轮换
+    "mix": [
+        "zh-CN-XiaoxiaoNeural",
+        "zh-CN-YunxiNeural",
+        "zh-CN-XiaoyiNeural",
+        "zh-CN-YunjianNeural",
+    ],
+    "dialect": [
+        "zh-CN-liaoning-XiaobeiNeural",
+        "zh-CN-shaanxi-XiaoniNeural",
+    ],
+}
+
+VOICE_LABELS: dict[str, str] = {
+    "zh-CN-XiaoxiaoNeural": "晓晓 · 温柔女声（默认）",
+    "zh-CN-XiaoyiNeural": "晓伊 · 活泼女声",
+    "zh-CN-YunxiNeural": "云希 · 沉稳男声",
+    "zh-CN-YunjianNeural": "云健 · 新闻男声",
+    "zh-CN-YunyangNeural": "云扬 · 专业男声",
+    "zh-CN-YunxiaNeural": "云夏 · 少年男声",
+    "zh-CN-liaoning-XiaobeiNeural": "晓北 · 东北女声",
+    "zh-CN-shaanxi-XiaoniNeural": "晓妮 · 陕西女声",
+    "zh-HK-HiuGaaiNeural": "粤语 · 女声",
+    "zh-TW-HsiaoChenNeural": "台湾 · 女声",
+}
+
 # 深色科技风配色
 C_BG_TOP = (12, 18, 35)
 C_BG_BOT = (28, 38, 58)
@@ -113,25 +143,84 @@ def audio_duration(path: Path) -> float:
     return float(r.stdout.strip())
 
 
+def resolve_voices(
+    voice: str,
+    voices_arg: list[str] | None,
+    preset: str | None,
+) -> list[str]:
+    if preset:
+        key = preset.lower()
+        if key not in VOICE_PRESETS:
+            raise SystemExit(f"未知预设: {preset}，可选: {', '.join(VOICE_PRESETS)}")
+        return list(VOICE_PRESETS[key])
+    if voices_arg:
+        return voices_arg
+    return [voice]
+
+
+def pick_voice_for_slide(
+    index: int,
+    slide: Slide,
+    voices: list[str],
+    mode: str,
+) -> str:
+    if len(voices) == 1:
+        return voices[0]
+    if mode == "single":
+        return voices[0]
+    if mode == "by_kind":
+        if slide.kind == "title":
+            return voices[0]
+        if slide.kind in ("flow", "pipeline", "layers"):
+            return voices[1 % len(voices)]
+        return voices[index % len(voices)]
+    # rotate（默认）：按页轮换
+    return voices[index % len(voices)]
+
+
 def generate_all_narrations(
     slides: List[Slide],
     audio_dir: Path,
-    voice: str,
+    voices: list[str],
     rate: str = "+0%",
     volume: str = "+0%",
     pitch: str = "+0Hz",
+    voice_mode: str = "rotate",
 ) -> List[float]:
     async def _run() -> List[float]:
         audio_dir.mkdir(parents=True, exist_ok=True)
         durations: List[float] = []
+        used: list[str] = []
         for i, slide in enumerate(slides, 1):
             text = narration_for(slide)
             mp3 = audio_dir / f"slide_{i:02d}.mp3"
-            await synthesize_narration(text, mp3, voice, rate=rate, volume=volume, pitch=pitch)
+            v = pick_voice_for_slide(i - 1, slide, voices, voice_mode)
+            used.append(v)
+            await synthesize_narration(text, mp3, v, rate=rate, volume=volume, pitch=pitch)
             durations.append(audio_duration(mp3))
+        # 记录每页发音人
+        (audio_dir / "voices_used.txt").write_text(
+            "\n".join(f"slide_{j+1:02d}: {used[j]}" for j in range(len(used))),
+            encoding="utf-8",
+        )
         return durations
 
     return asyncio.run(_run())
+
+
+def print_voice_catalog(locale_prefix: str = "zh") -> None:
+    import edge_tts
+    voices = asyncio.run(edge_tts.list_voices())
+    print("=== 推荐预设 (--voice-preset) ===")
+    for name, ids in VOICE_PRESETS.items():
+        labels = [VOICE_LABELS.get(v, v) for v in ids]
+        print(f"  {name}: {' | '.join(labels)}")
+    print("\n=== 全部中文相关语音 (--voice / --voices) ===")
+    for v in sorted(voices, key=lambda x: x["ShortName"]):
+        if v["Locale"].startswith(locale_prefix):
+            label = VOICE_LABELS.get(v["ShortName"], "")
+            extra = f"  {label}" if label else ""
+            print(f"  {v['ShortName']}  {v['Gender']}  {v['Locale']}{extra}")
 
 
 def _margin() -> int:
@@ -658,12 +747,32 @@ def build_video(image_dir: Path, out: Path, duration: float) -> None:
 
 def main():
     parser = argparse.ArgumentParser(description="从 Markdown 生成框图风格 PPT/视频（支持竖屏+讲解）")
-    parser.add_argument("article", type=Path)
+    parser.add_argument("article", type=Path, nargs="?", default=None, help="Markdown 文章路径")
     parser.add_argument("-o", "--output-dir", type=Path, default=Path("ppt_output"))
     parser.add_argument("--seconds", type=float, default=4.5, help="无配音时每页秒数")
     parser.add_argument("--landscape", action="store_true", help="横屏 16:9（默认竖屏 9:16）")
     parser.add_argument("--no-voice", action="store_true", help="不生成讲解配音")
-    parser.add_argument("--voice", type=str, default=DEFAULT_VOICE, help="edge-tts 语音 ID")
+    parser.add_argument("--voice", type=str, default=DEFAULT_VOICE, help="单个发音人 ID（与 --voices 互斥时后者优先）")
+    parser.add_argument(
+        "--voices",
+        type=str,
+        default="",
+        help="多个发音人，逗号分隔；默认按页轮换，如 XiaoxiaoNeural,YunxiNeural",
+    )
+    parser.add_argument(
+        "--voice-preset",
+        type=str,
+        default="",
+        choices=list(VOICE_PRESETS.keys()),
+        help="发音人预设组合：female/male/duo/mix/dialect",
+    )
+    parser.add_argument(
+        "--voice-mode",
+        type=str,
+        default="rotate",
+        choices=["rotate", "single", "by_kind"],
+        help="多发音人策略：rotate 按页轮换 | single 只用第一个 | by_kind 按版式分配",
+    )
     parser.add_argument(
         "--rate",
         type=str,
@@ -690,14 +799,19 @@ def main():
     args = parser.parse_args()
 
     if args.list_voices:
-        import edge_tts
-        voices = asyncio.run(edge_tts.list_voices())
-        for v in sorted(voices, key=lambda x: x["ShortName"]):
-            if v["Locale"].startswith("zh"):
-                print(f"{v['ShortName']}  {v['Gender']}  {v['Locale']}")
+        print_voice_catalog()
         return
 
     set_orientation(not args.landscape)
+
+    if not args.article:
+        parser.error("请提供 Markdown 文章路径")
+
+    voices_list = resolve_voices(
+        args.voice,
+        [v.strip() for v in args.voices.split(",") if v.strip()] if args.voices else None,
+        args.voice_preset or None,
+    )
 
     article = args.article.resolve()
     title, _, slides = parse_article(article)
@@ -723,8 +837,9 @@ def main():
     else:
         print("正在生成讲解配音…")
         durations = generate_all_narrations(
-            slides, audio_dir, args.voice,
+            slides, audio_dir, voices_list,
             rate=args.rate, volume=args.volume, pitch=args.pitch,
+            voice_mode=args.voice_mode,
         )
         build_video_with_narration(img_dir, audio_dir, durations, video_path)
 
@@ -736,7 +851,9 @@ def main():
     print(f"视频: {video_path}")
     if not args.no_voice:
         print(f"配音: {audio_dir}")
-        print(f"语音: {args.voice}  语速: {args.rate}  音量: {args.volume}  音调: {args.pitch}")
+        labels = [VOICE_LABELS.get(v, v) for v in voices_list]
+        print(f"发音人({args.voice_mode}): {' | '.join(labels)}")
+        print(f"语速: {args.rate}  音量: {args.volume}  音调: {args.pitch}")
 
 
 if __name__ == "__main__":
