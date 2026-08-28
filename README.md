@@ -208,6 +208,7 @@
    - 每个领域包含 `README.md`（学习指南）与 `chapters/`（章节文章）
    - 共 100 个领域、10000 篇章节文章 + 100 篇概述
 4. **重新生成文章**：运行 `python generate_articles.py` 从 JSON 生成全部教程
+5. **完整性检测**：运行 `python check_articles.py` 与 `python check_articles_deep.py` 校验结构、数量与链接
 
 ### 文章目录结构
 
