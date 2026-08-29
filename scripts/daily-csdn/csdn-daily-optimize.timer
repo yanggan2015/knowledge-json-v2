@@ -1,0 +1,12 @@
+[Unit]
+Description=Run CSDN daily optimize at 08:00 local time
+Documentation=file://%h/knowledge-json-v2/scripts/daily-csdn/PROMPT.md
+
+[Timer]
+OnCalendar=*-*-* 08:00:00
+Persistent=true
+RandomizedDelaySec=120
+Unit=csdn-daily-optimize.service
+
+[Install]
+WantedBy=timers.target

@@ -1,0 +1,22 @@
+[Unit]
+Description=Daily CSDN article optimize & publish (Cursor Agent)
+Documentation=file://%h/knowledge-json-v2/scripts/daily-csdn/PROMPT.md
+After=network-online.target graphical-session.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+WorkingDirectory=%h/knowledge-json-v2
+ExecStart=%h/knowledge-json-v2/scripts/daily-csdn/run.sh
+# 给 Agent + 浏览器发布足够时间（约 2 小时）
+TimeoutStartSec=7200
+Nice=10
+
+# 继承用户图形会话常用变量；DISPLAY 等见 ~/.config/csdn-daily.env
+Environment=HOME=%h
+Environment=LANG=zh_CN.UTF-8
+Environment=PATH=%h/.local/bin:/usr/local/bin:/usr/bin:/bin
+EnvironmentFile=-%h/.config/csdn-daily.env
+
+[Install]
+WantedBy=default.target

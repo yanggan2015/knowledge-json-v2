@@ -4,3 +4,5 @@
 .env.*
 *.pem
 .DS_Store
+scripts/daily-csdn/logs/
+scripts/daily-csdn/.run.lock
