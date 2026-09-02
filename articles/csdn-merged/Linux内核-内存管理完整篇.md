@@ -38,53 +38,72 @@ vm_fault_t handle_mm_fault(struct vm_area_struct *vma,
 
 ## 调用链
 
-### 物理页与 zone
+### 内存管理子系统总览
 
-```text
-需要连续 2^order 个页框
-  → alloc_pages(gfp, order)              /* page_alloc.c */
-      → get_page_from_freelist
-          → 按 zonelist 尝试 ZONE_DMA / ZONE_DMA32 / ZONE_NORMAL …
-          → 水位不足 → wake kswapd 或直接 reclaim
-      → 失败且 __GFP_NOFAIL 未设 → NULL / OOM 路径
+```mermaid
+flowchart TB
+    subgraph 用户态
+        A[mmap / brk / malloc]
+        B[read / write 文件]
+    end
+    subgraph 虚拟内存
+        C[do_mmap → VMA]
+        D[handle_mm_fault]
+    end
+    subgraph 物理内存
+        E[伙伴系统 page_alloc.c]
+        F[SLUB slub.c]
+        G[page cache filemap.c]
+    end
+    subgraph 压力与回收
+        H[kswapd vmscan.c]
+        I[OOM oom_kill.c]
+    end
+    A --> C --> D
+    B --> G
+    D --> E
+    D --> G
+    F --> E
+    E --> H
+    H --> I
 ```
 
-### 内核小对象（kmalloc）
+### 缺页 fault 分支
 
-```text
-kmalloc(size, gfp)
-  → __kmalloc → slab 层
-      → kmem_cache_alloc(slub cache)     /* slub.c */
-          → 优先 per-CPU freelist
-          → 否则从 partial slab 取；仍无则向伙伴系统要新 slab 页
+```mermaid
+flowchart TD
+    A[用户访问 VA] --> B[架构 fault 入口]
+    B --> C[handle_mm_fault]
+    C --> D[handle_pte_fault]
+    D --> E{PTE 状态?}
+    E -->|空 + 匿名| F[do_anonymous_page]
+    E -->|空 + 文件| G[filemap_fault]
+    E -->|swap entry| H[do_swap_page]
+    E -->|写只读| I[do_wp_page COW]
+    G --> J[page cache]
+    F --> K[alloc_pages]
+    H --> K
 ```
 
-### 进程虚拟地址与缺页
+### 回收与 OOM 路径
 
-```text
-用户访问 VA（mmap/brk/栈/堆）
-  → 架构 fault 入口 (do_page_fault / do_translation_fault)
-      → handle_mm_fault(vma, addr, flags)   /* memory.c */
-          → __handle_mm_fault → 遍历四级页表
-          → handle_pte_fault
-              ├─ PTE 空 + 匿名 → do_anonymous_page（零页/COW）
-              ├─ PTE 空 + 文件 → filemap_fault → page cache
-              ├─ swap entry → do_swap_page
-              └─ 写只读 → do_wp_page（COW）
+```mermaid
+flowchart LR
+    A[zone 水位低] --> B{direct reclaim?}
+    B -->|是| C[shrink_lruvec]
+    B -->|否| D[唤醒 kswapd]
+    D --> C
+    C --> E{仍无法满足分配?}
+    E -->|是| F[out_of_memory]
+    F --> G[select_bad_process]
+    G --> H[SIGKILL]
 ```
 
-### 回收与 OOM
+### 文字补充（kmalloc 路径）
 
 ```text
-内存压力 / 水位低于 low
-  → kswapd 或 direct reclaim (vmscan.c)
-      → shrink_lruvec：扫描 active/inactive 链表
-      → 文件页可丢（仍留 cache）；匿名页需 swap 或回收
-
-仍无法满足分配且 __GFP_FS 等条件允许
-  → out_of_memory() (oom_kill.c)
-      → select_bad_process：badness + oom_score_adj
-      → 发送 SIGKILL
+kmalloc → __kmalloc → kmem_cache_alloc(slub.c)
+  → per-CPU freelist → partial slab → alloc_pages
 ```
 
 ## 重点知识

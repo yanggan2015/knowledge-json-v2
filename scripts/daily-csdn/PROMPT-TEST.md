@@ -17,6 +17,6 @@
 
 标题示例（可优化）：`Linux 内核内存管理完整篇：伙伴系统、SLUB、缺页、OOM 与调优实战`
 
-合并后必须覆盖：伙伴系统/SLUB/VMA/page cache/OOM/cgroup/THP/缺页路径/观测命令/常见坑/Checklist。
+合并后必须覆盖：伙伴系统/SLUB/VMA/page cache/OOM/cgroup/THP/缺页路径/观测命令/常见坑/Checklist；**≥2 处 Mermaid 框图**（缺页分支 + MM 子系统分层或 OOM 路径）。
 
 完成后：发布 → 登记表追加（备注列列出全部源路径）→ git commit & push → 汇报 URL。
