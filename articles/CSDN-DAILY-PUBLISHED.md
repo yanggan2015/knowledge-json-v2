@@ -23,3 +23,4 @@
 | 2026-09-01 | `Linux内核/chapters/124-网络协议栈的源码级分析.md` | TCP 发包路径：从 sock_sendmsg 到网卡 NAPI 的 sk_buff 旅程 | 已发布 | 164287218 / https://mp.csdn.net/mp_blog/creation/success/164287218 | 日更优化发布 |
 | 2026-09-01 | `驱动开发/chapters/054-PCI设备驱动的源码级分析.md` | PCI 驱动绑定：从 pci_register_driver 到 probe 的 ID 表匹配 | 已发布 | 164287252 / https://mp.csdn.net/mp_blog/creation/success/164287252 | 日更优化发布 |
 | 2026-09-01 | `驱动开发/chapters/064-USB设备驱动的源码级分析.md` | USB 接口驱动：从 usb_register_driver 到 URB 提交的绑定路径 | 已发布 | 164287279 / https://mp.csdn.net/mp_blog/creation/success/164287279 | 日更优化发布 |
+| 2026-09-01 | `csdn-merged/Linux内核-内存管理完整篇.md` | Linux 内核内存管理完整篇：伙伴系统、SLUB、缺页、page cache 与 OOM 实战 | 已发布 | 164289252 / https://mp.csdn.net/mp_blog/creation/success/164289252 | 合并源：041,042,043,045,046,047（内存管理系列） |

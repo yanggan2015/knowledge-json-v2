@@ -1,98 +1,83 @@
-# 每日任务：优选 4 篇 → 优化 → 发布 CSDN → 回写 → git push
+# 每日任务：主题合并 → 产出 4 篇完整长文 → 发布 CSDN → 登记 → git push
 
 你是本仓库的自动化 Agent。请**严格按序**完成下列全部步骤，不要只规划不执行。
+
+## 核心策略（必读）
+
+**CSDN 每日额度：4 篇。** 不要直接把 4 个零散 chapter 各发一篇——它们往往篇幅过小、知识点割裂。
+
+正确做法：
+
+1. 在 `articles/` 下按**同一知识点/同一模块**聚类（例如 `Linux内核/chapters/041~047` 都属于「内存管理」）。
+2. 将 **2～6 篇**同源 md **合并重写**为 **1 篇完整长文**，保证该知识点从概念→机制→源码→配置→排障→Checklist **闭环**。
+3. 每天产出并发布 **恰好 4 篇**这样的合并长文（=CSDN 额度打满）。
+4. 合并后的成稿写入 `articles/csdn-merged/<系列>-<主题>.md`（单文件对应 CSDN 一篇）。
+
+**篇幅与质量**：合并文建议 **2500～6000 字**（信息密度优先，不注水）；必须含 **源码锚点 / 调用链 / 重点知识 / Checklist**；对照 `~/.agent/csdn-publish/QUALITY.md` 九条硬门槛。
 
 ## 仓库与路径
 
 - 工作目录：`~/knowledge-json-v2`
-- 文章根目录：`~/knowledge-json-v2/articles/`（其下有多系列文件夹，如 `Linux内核/chapters/*.md`、`驱动开发/chapters/*.md` 等）
+- 文章源：`~/knowledge-json-v2/articles/<系列>/chapters/*.md`
+- 合并成稿目录：`~/knowledge-json-v2/articles/csdn-merged/`（不存在则创建）
 - 已发布登记表：`~/knowledge-json-v2/articles/CSDN-DAILY-PUBLISHED.md`
-- 质量标准：`~/.agent/csdn-publish/QUALITY.md` 与 Cursor 规则 `csdn-article-quality`
-- 发布脚本：`HEADLESS=0 bash ~/.agent/csdn-publish/publish.sh <md绝对路径>`
+- 质量标准：`~/.agent/csdn-publish/QUALITY.md`
+- 发布脚本：`HEADLESS=0 bash ~/.agent/csdn-publish/publish.sh <成稿绝对路径>`
 
-## 步骤 0：确认登记表存在
+## 步骤 0：确认登记表
 
-1. 若 `articles/CSDN-DAILY-PUBLISHED.md` **不存在**，按下列模板**新建一次**（含表头），然后继续：
+1. 若 `articles/CSDN-DAILY-PUBLISHED.md` 不存在，按模板**新建一次**（含表头）。
+2. 已存在则**只读**；发布成功后**只追加行**，禁止删改历史。
 
-```markdown
-# CSDN 每日优化发布登记表
+登记表列：`| 日期 | 相对路径 | 标题 | CSDN状态 | articleId / URL | 备注 |`
 
-> 用途：记录已优化并发布到 CSDN 的文章，避免重复发布。
-> 规则：本表只建一次；之后每次发布成功只追加行，禁止删改历史行。
+- **相对路径**：写合并成稿路径，如 `csdn-merged/Linux内核-内存管理完整篇.md`
+- **备注**：列出**已合并的源 chapter 相对路径**（逗号分隔），避免日后重复合并发布
 
-## 已发布记录
+## 步骤 1：规划 4 个「主题包」
 
-| 日期 | 相对路径 | 标题 | CSDN状态 | articleId / URL | 备注 |
-|------|----------|------|----------|-----------------|------|
-```
+1. 读取登记表，收集已发布的成稿路径 + 备注中的源 chapter 路径。
+2. 扫描 `articles/*/chapters/*.md`，按目录名/文件名前缀聚类（如 `041-内存管理…`～`047-内存管理…` 为一包）。
+3. 选出 **4 个**未发布过的主题包。优先级：
+   - 嵌入式 / Linux 内核 / 驱动 / 系统编程
+   - 标题可检索、有痛点
+   - 源 chapter ≥2 篇且尚未在登记表「备注」中出现
+4. 若 `DAILY_PUBLISH_COUNT` 环境变量已设置（如测试 `=1`），则只处理对应篇数并在汇报说明。
 
-2. 若已存在，**只读表头与已有行**，后续只追加，禁止清空或重写整表。
+## 步骤 2：逐包合并重写
 
-## 步骤 1：选出 4 篇「最有吸引力」且未发布的文章
+对每个主题包：
 
-1. 读取 `articles/CSDN-DAILY-PUBLISHED.md`，得到已发布的相对路径集合（表中「相对路径」列，相对 `articles/`）。
-2. 在 `articles/` 下扫描各系列 `chapters/*.md`（跳过 `README.md`、`INDEX.md`、登记表自身、以及已在登记表中的路径）。
-3. 从候选中选出 **恰好 4 篇** 最有吸引力的文章。吸引力优先看：
-   - 标题具体、可检索、有痛点（非空泛「简介/浅谈」）
-   - 题材偏嵌入式 / Linux 内核 / 驱动 / 实战排障（读者点击意愿高）
-   - 正文已有一定骨架，优化后容易达标
-4. 若不足 4 篇未发布候选，有几篇做几篇，并在最终汇报说明。
-
-## 步骤 2：逐篇优化（直接改原文件）
-
-对每一篇选中的 md：
-
-1. 对照 `QUALITY.md` 九条硬门槛改写，结构必须含：**源码锚点 / 调用链 / 重点知识 / Checklist**。
-2. **原地更新**原 md 文件（路径不变）。
-3. 源码路径/符号必须真实；禁止编造 API；精简去水；知识面要闭环。
-4. 不达标则继续改，直到自检通过，再进入发布。
+1. 读取该包全部源 md，提取真实知识点（去重、去模板水词）。
+2. 写一篇**新结构**的合并长文，写入 `articles/csdn-merged/<系列>-<主题>.md`。
+3. 结构必须含：导语、源码锚点（真实路径+短代码）、调用链、重点知识（分小节）、Checklist（≥5 条）。
+4. **可选**：在源 chapter 文件末尾追加一行 `> 已合并至 csdn-merged/xxx.md（YYYY-MM-DD）`，便于追溯；**不要**删除源文件。
+5. 自检不达标则继续改，直到通过再发布。
 
 ## 步骤 3：发布到 CSDN
 
-对每一篇优化通过的文章：
+对每个合并成稿：
 
-1. 再次确认该相对路径**不在**登记表中。
+1. 确认成稿路径与源 chapter 均不在登记表中。
 2. 执行：
 
 ```bash
-HEADLESS=0 bash ~/.agent/csdn-publish/publish.sh "<文章绝对路径>"
+HEADLESS=0 bash ~/.agent/csdn-publish/publish.sh "<成稿绝对路径>"
 ```
 
-3. 根据脚本输出如实判定（成功 / 草稿上限 / 需验证码等）。
-4. **禁止**未跑脚本就声称已发布。
-
-篇与篇之间若连续发布，间隔至少 20–60 秒（可用 `sleep`）。
+3. 根据脚本输出判定：已发布 / 草稿（额度用尽）/ 需验证码 / 失败。
+4. **禁止**未跑脚本就声称已发布。篇间间隔 20–60 秒。
 
 ## 步骤 4：追加登记表
 
-每篇发布结果确定后，向 `articles/CSDN-DAILY-PUBLISHED.md` **追加一行**（不要改旧行）：
+每篇发布后追加一行；备注必须含源 chapter 列表。
 
-| 今日日期 YYYY-MM-DD | 相对路径如 `Linux内核/chapters/xxx.md` | 标题 | 已发布或草稿 | articleId 或完整 URL | 简短备注 |
+## 步骤 5：git commit & push
 
-草稿也要登记，避免明天重复推同一篇。
+在 `~/knowledge-json-v2` 暂存：`csdn-merged/` 新成稿、登记表、可选源文件追溯注释；提交并 `git push`（push 失败时用 `gh auth token` + `GIT_ASKPASS` 重试，不改 git config）。
 
-## 步骤 5：git 提交并 push
+## 最终汇报
 
-在 `~/knowledge-json-v2`：
-
-1. `git status` / `git diff` 确认变更（优化后的 md + 登记表）。
-2. 暂存相关文件并提交，提交说明示例：
-
-```
-daily: optimize and publish 4 CSDN articles
-
-EOF
-```
-
-（用 HEREDOC 写 commit message；不要改 git config。）
-
-3. **`git push` 到当前跟踪的远程分支**（需要网络权限时使用）。
-
-## 最终汇报（必须）
-
-用简短列表汇报：
-
-- 选中的 4 篇路径与标题
-- 每篇：优化要点一句话 + 发布结果（URL 或草稿链接或失败原因）
-- 登记表是否已追加
-- git commit hash 与 push 是否成功
+- 4 个主题包：成稿路径、标题、合并了哪些源 chapter
+- 每篇：合并要点 + 发布结果（URL / 草稿 / 失败原因）
+- 登记表与 git 状态

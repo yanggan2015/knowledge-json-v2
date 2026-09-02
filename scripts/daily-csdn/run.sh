@@ -1,10 +1,12 @@
 #!/usr/bin/env bash
-# 每日 8:00：调用 Cursor Agent 优选 4 篇 → 优化 → 发布 CSDN → 回写 → git push
+# 每日北京时间 08:00：调用 Cursor Agent 优选 4 篇 → 优化 → 发布 CSDN → 回写 → git push
 set -euo pipefail
 
 REPO="${REPO:-$HOME/knowledge-json-v2}"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROMPT_FILE="${PROMPT_FILE:-$SCRIPT_DIR/PROMPT.md}"
+# 测试模式：PROMPT_FILE=.../PROMPT-TEST.md DAILY_PUBLISH_COUNT=1 bash run.sh
+DAILY_PUBLISH_COUNT="${DAILY_PUBLISH_COUNT:-4}"
 LOG_DIR="${LOG_DIR:-$SCRIPT_DIR/logs}"
 AGENT_BIN="${AGENT_BIN:-$(command -v agent || true)}"
 LOCK_FILE="${LOCK_FILE:-$SCRIPT_DIR/.run.lock}"
@@ -22,7 +24,17 @@ if ! flock -n 9; then
 fi
 
 # GUI / 浏览器发布所需环境（systemd 下常缺失）
-export DISPLAY="${DISPLAY:-:0}"
+# 优先用 env 文件；否则探测本机活跃 X11（:10 / :0 等）
+if [[ -z "${DISPLAY:-}" || "${DISPLAY}" == ":0" ]]; then
+  if [[ -S /tmp/.X11-unix/X10 ]]; then
+    export DISPLAY=:10
+  elif [[ -S /tmp/.X11-unix/X0 ]]; then
+    export DISPLAY=:0
+  else
+    export DISPLAY="${DISPLAY:-:0}"
+  fi
+fi
+export DISPLAY="${DISPLAY:-:10}"
 export XAUTHORITY="${XAUTHORITY:-$HOME/.Xauthority}"
 export LANG="${LANG:-zh_CN.UTF-8}"
 export PATH="$HOME/.local/bin:/usr/local/bin:/usr/bin:$PATH"
@@ -59,8 +71,9 @@ EOF
   echo "[daily-csdn] 已初始化登记表: $REGISTRY" | tee -a "$LOG_FILE"
 fi
 
+mkdir -p "$REPO/articles/csdn-merged"
 PROMPT="$(cat "$PROMPT_FILE")"
-PROMPT+=$'\n\n'"今天日期：$(date +%Y-%m-%d)。请开始执行，不要只输出计划。"
+PROMPT+=$'\n\n'"今天日期：$(date +%Y-%m-%d)。DAILY_PUBLISH_COUNT=${DAILY_PUBLISH_COUNT}。请开始执行，不要只输出计划。"
 
 echo "[daily-csdn] $(date -Is) 开始" | tee -a "$LOG_FILE"
 echo "[daily-csdn] REPO=$REPO" | tee -a "$LOG_FILE"

@@ -1,9 +1,10 @@
 [Unit]
-Description=Run CSDN daily optimize at 08:00 local time
+Description=Run CSDN daily optimize at 08:00 Asia/Shanghai
 Documentation=file://%h/knowledge-json-v2/scripts/daily-csdn/PROMPT.md
 
 [Timer]
-OnCalendar=*-*-* 08:00:00
+# 北京时间每天 08:00（与主机 America/New_York 时区无关）
+OnCalendar=*-*-* 08:00:00 Asia/Shanghai
 Persistent=true
 RandomizedDelaySec=120
 Unit=csdn-daily-optimize.service
