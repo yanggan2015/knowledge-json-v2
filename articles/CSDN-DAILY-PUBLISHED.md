@@ -25,3 +25,7 @@
 | 2026-09-01 | `驱动开发/chapters/064-USB设备驱动的源码级分析.md` | USB 接口驱动：从 usb_register_driver 到 URB 提交的绑定路径 | 已发布 | 164287279 / https://mp.csdn.net/mp_blog/creation/success/164287279 | 日更优化发布 |
 | 2026-09-01 | `csdn-merged/Linux内核-内存管理完整篇.md` | Linux 内核内存管理完整篇：伙伴系统、SLUB、缺页、page cache 与 OOM 实战 | 已发布 | 164289252 / https://mp.csdn.net/mp_blog/creation/success/164289252 | 合并源：041,042,043,045,046,047（内存管理系列） |
 | 2026-09-02 | `csdn-merged/Linux内核-中断处理从硬件到GIC完整篇.md` | 一篇搞懂 Linux 中断：从引脚、GIC 到 softirq 的完整链路 | 已发布 | 164302997 / https://mp.csdn.net/mp_blog/creation/success/164302997 | 硬件原理+GICv2/v3+IRQ子系统+softirq |
+| 2026-09-02 | `csdn-merged/Linux内核-进程管理与调度完整篇.md` | Linux 进程调度完整篇：从 task_struct、fork 到 CFS/实时类与排障 | 已发布 | 164323124 / https://mp.csdn.net/mp_blog/creation/success/164323124 | 合并源：Linux内核/chapters/021,022,023,025,026,027-进程管理与调度* |
+| 2026-09-02 | `csdn-merged/Linux内核-同步机制完整篇.md` | Linux 内核同步机制完整篇：spinlock、mutex、rwsem、RCU 选型与死锁排查 | 已发布 | 164323251 / https://mp.csdn.net/mp_blog/creation/success/164323251 | 合并源：Linux内核/chapters/081,082,083,085,086,087-同步机制* |
+| 2026-09-02 | `csdn-merged/驱动开发-网络设备驱动完整篇.md` | 网卡驱动完整篇：从 net_device、NAPI 到收发包与排障 | 已发布 | 164323301 / https://mp.csdn.net/mp_blog/creation/success/164323301 | 合并源：驱动开发/chapters/031,032,033,034,035,036-网络设备驱动* |
+| 2026-09-02 | `csdn-merged/驱动开发-输入子系统完整篇.md` | Linux 输入子系统完整篇：从 input_dev、evdev 到按键/触控上报 | 已发布 | 164323347 / https://mp.csdn.net/mp_blog/creation/success/164323347 | 合并源：驱动开发/chapters/071,072,073,074,075,076-输入子系统* |
