@@ -45,3 +45,5 @@
 | 2026-09-06 | `csdn-merged/驱动开发-驱动模型基础完整篇.md` | Linux 驱动模型基础完整篇：从 bus/device/driver 到 match/probe 绑定排障 | 已发布 | 164449465 / https://mp.csdn.net/mp_blog/creation/success/164449465 | 合并源：驱动开发/chapters/001,002,003,005,006,007-驱动模型基础*（004 曾单独发布） |
 | 2026-09-06 | `csdn-merged/Linux系统编程-内存映射mmap完整篇.md` | Linux 内存映射 mmap 完整篇：从用户态 API、VMA 到缺页与驱动实现 | 已发布 | 164449503 / https://mp.csdn.net/mp_blog/creation/success/164449503 | 合并源：Linux系统编程/chapters/085,086,087,088,089,090-内存映射* |
 | 2026-09-06 | `csdn-merged/Linux系统编程-守护进程与服务完整篇.md` | Linux 守护进程与服务完整篇：从 daemonize、systemd 到 pidfile 与排障 | 已发布 | 164449546 / https://mp.csdn.net/mp_blog/creation/success/164449546 | 合并源：Linux系统编程/chapters/109,110,111,112,113,114-守护进程与服务* |
+| 2026-09-06 | `csdn-merged/嵌入式Linux-WiFi框架完整篇.md` | 嵌入式 Linux WiFi 框架完整篇：从 cfg80211、mac80211 到 wpa_supplicant | 已发布 | 164450898 / https://mp.csdn.net/mp_blog/creation/success/164450898 | cfg80211/mac80211/nl80211/FullMAC/固件/rfkill |
+| 2026-09-06 | `csdn-merged/嵌入式Linux-蓝牙框架完整篇.md` | 嵌入式 Linux 蓝牙框架完整篇：从 HCI、L2CAP 到 BlueZ 用户态 | 已发布 | 164450931 / https://mp.csdn.net/mp_blog/creation/success/164450931 | HCI/L2CAP/RFCOMM/BlueZ/mgmt/BLE |
