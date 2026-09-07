@@ -1,12 +1,12 @@
 #!/usr/bin/env bash
-# 每日北京时间 08:00：调用 Cursor Agent 优选 4 篇 → 优化 → 发布 CSDN → 回写 → git push
+# 每日北京时间 08:00：调用 Cursor Agent 优选主题包 → 合并优化 → 发布 CSDN → 回写 → git push
 set -euo pipefail
 
 REPO="${REPO:-$HOME/knowledge-json-v2}"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROMPT_FILE="${PROMPT_FILE:-$SCRIPT_DIR/PROMPT.md}"
 # 测试模式：PROMPT_FILE=.../PROMPT-TEST.md DAILY_PUBLISH_COUNT=1 bash run.sh
-DAILY_PUBLISH_COUNT="${DAILY_PUBLISH_COUNT:-4}"
+DAILY_PUBLISH_COUNT="${DAILY_PUBLISH_COUNT:-8}"
 LOG_DIR="${LOG_DIR:-$SCRIPT_DIR/logs}"
 AGENT_BIN="${AGENT_BIN:-$(command -v agent || true)}"
 LOCK_FILE="${LOCK_FILE:-$SCRIPT_DIR/.run.lock}"
