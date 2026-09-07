@@ -47,3 +47,5 @@
 | 2026-09-06 | `csdn-merged/Linux系统编程-守护进程与服务完整篇.md` | Linux 守护进程与服务完整篇：从 daemonize、systemd 到 pidfile 与排障 | 已发布 | 164449546 / https://mp.csdn.net/mp_blog/creation/success/164449546 | 合并源：Linux系统编程/chapters/109,110,111,112,113,114-守护进程与服务* |
 | 2026-09-06 | `csdn-merged/嵌入式Linux-WiFi框架完整篇.md` | 嵌入式 Linux WiFi 框架完整篇：从 cfg80211、mac80211 到 wpa_supplicant | 已发布 | 164450898 / https://mp.csdn.net/mp_blog/creation/success/164450898 | cfg80211/mac80211/nl80211/FullMAC/固件/rfkill |
 | 2026-09-06 | `csdn-merged/嵌入式Linux-蓝牙框架完整篇.md` | 嵌入式 Linux 蓝牙框架完整篇：从 HCI、L2CAP 到 BlueZ 用户态 | 已发布 | 164450931 / https://mp.csdn.net/mp_blog/creation/success/164450931 | HCI/L2CAP/RFCOMM/BlueZ/mgmt/BLE |
+| 2026-09-06 | `csdn-merged/WebView原理与三大端完整篇.md` | WebView 完整篇：从嵌入浏览器到 JS Bridge，覆盖 Android / iOS / 桌面三大端 | 已发布 | 164451787 / https://mp.csdn.net/mp_blog/creation/success/164451787 | Android/iOS/WebView2/WKWebView/WebKitGTK |
+| 2026-09-06 | `csdn-merged/网页打包桌面程序三大系统完整篇.md` | 把网页打包成桌面程序完整篇：Windows / macOS / Linux 实战对照 | 已发布 | 164451841 / https://mp.csdn.net/mp_blog/creation/success/164451841 | Electron/Tauri/原生壳/PWA三端打包 |
