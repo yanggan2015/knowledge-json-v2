@@ -185,15 +185,6 @@ Android 系统 WebView 随设备差异大 → 用 Play 更新的 **Android Syste
 iOS WebKit 跟系统走，不能自带 Chromium（上架规则）。  
 Windows WebView2 Evergreen 跟 Edge 更新；离线现场可用 Fixed Version。
 
-## Checklist
-
-- [ ] 能说出本项目用的引擎：Chromium 还是 WebKit，以及组件名（WebView2 / WKWebView / WebKitGTK…）
-- [ ] 清楚导航拦截与资源拦截分别在哪类回调里做
-- [ ] JS Bridge 有来源校验与最小权限，无对任意站点暴露危险 API
-- [ ] 本地资源加载方式安全（优先 AssetLoader / 自定义协议，慎用裸 `file://`）
-- [ ] 处理过渲染进程崩溃与存储目录（多实例不打架）
-- [ ] 会用对应平台的远程调试查看控制台与网络
-- [ ] 嵌入式场景评估过内存与 GPU，避免多 WebView 无节制
 
 ---
 

@@ -195,15 +195,6 @@ modprobe my_driver
 ```
 ---
 
-## Checklist
-
-- [ ] 能画出 `driver_register` → `match` → `really_probe` 的链
-- [ ] 知道 `-EPROBE_DEFER` 的正确用法，而不是盲目 `msleep`
-- [ ] 能用 `/sys/bus/.../devices` 与 `drivers` 判断是否已绑定
-- [ ] probe 错误路径用 `devm_*` 或成对释放，无资源泄漏
-- [ ] DT `compatible` 与 `of_match_table` 字符串完全一致（含厂商前缀）
-- [ ] 理解 uevent → udev → `/dev` 节点这一跳，能查 udev 规则
-- [ ] 区分「未 match」与「match 后 probe 失败」两类日志
 
 ---
 

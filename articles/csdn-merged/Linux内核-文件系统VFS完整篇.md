@@ -193,15 +193,6 @@ ls -ld $(dirname /path/to/file)
 | 容器内写爆盘 | overlay 上层 | `df` 分层、`docker system df` 等 |
 ---
 
-## Checklist
-
-- [ ] 能口述 `path_openat` → dentry lookup → `vfs_open` → `f_op->open` 的链
-- [ ] 分清故障在路径查找、权限、还是 `f_op`/块层
-- [ ] `strace` 的 open 标志与 errno 能对应到 VFS 分支
-- [ ] 理解 dentry/inode/file/super_block 各自职责
-- [ ] 海量小文件场景评估过 `vfs_cache_pressure` 与目录布局
-- [ ] `O_DIRECT`/挂载选项（`noatime` 等）按业务验证，而非照抄博客
-- [ ] 容器 overlay 写放大与底层磁盘延迟能区分排查
 
 ---
 

@@ -182,16 +182,6 @@ modinfo mydrv | grep alias
 
 ---
 
-## Checklist
-
-- [ ] 能口述 `usb_register_driver` → `usb_probe_interface` → `probe` 的调用位置
-- [ ] `lsusb -nn` 与 `usb_device_id` / `MODULE_DEVICE_TABLE(usb, …)` 一致
-- [ ] 确认匹配的是正确 interface（复合设备已核对 `lsusb -t`）
-- [ ] 端点号来自描述符解析，而非硬编码
-- [ ] 每个长期 URB 在 `disconnect` 有 `kill`/`free` 路径
-- [ ] `complete` 中无睡眠；拔出竞态有标志位保护
-- [ ] DMA 缓冲使用 `usb_alloc_coherent` 或等价正确映射
-- [ ] 需要时用 usbmon 抓到 submit 与 complete 配对
 
 ---
 

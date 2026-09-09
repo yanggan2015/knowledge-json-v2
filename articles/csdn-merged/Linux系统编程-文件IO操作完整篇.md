@@ -347,25 +347,6 @@ strace -e write ./a.out   # 对比 printf 有无 \n 时的 write 次数
 
 ---
 
-## Checklist
-
-- [ ] `open`/`openat` 用 `O_CLOEXEC`；多线程 `fork`+`exec` 前关闭或设 CLOEXEC 全部业务 fd
-- [ ] `FILE*` 与 fd 不混用除非 `fflush`；`fileno` 后 syscall 知悉缓冲失效
-- [ ] 打开标志明确：`O_APPEND`/`O_CREAT`/`O_EXCL`/`O_CLOEXEC`；需要非阻塞则 `O_NONBLOCK` 或 `fcntl`
-- [ ] 使用 `O_DIRECT` 时缓冲与长度/偏移对齐；失败打印 `errno=EINVAL`
-- [ ] stdio 与 syscall 混用时：`fork` 前 `fflush`；关键路径 `setvbuf(_IONBF)` 或直接 `write`
-- [ ] `dup2` 后关闭多余 fd；确认 `/proc/self/fd` 无泄漏；生产调大 `RLIMIT_NOFILE` 有依据
-- [ ] 所有 `open` 失败路径不泄漏已打开 fd；`close` 配对（含错误分支）
-- [ ] `strace -f` 覆盖 pread64/readv/sendfile；对照内核 `read_write.c` 短返回分支
-- [ ] 多线程共享 fd 读不同偏移用 `pread`/`pwrite`，避免 `lseek` 竞态
-- [ ] 多 iovec 用 `readv`/`writev` 减 syscall；仍按短返回写循环
-- [ ] 静态文件→socket 优先考虑 `sendfile`/`splice`；失败再 fallback read/write
-- [ ] `fcntl F_GETFL/F_SETFL` 改 `O_NONBLOCK`；`F_SETFD` 设 `FD_CLOEXEC`；`exec` 前扫 fd
-- [ ] 读 `/proc/<pid>/fdinfo/<n>` 对照 `pos`/`flags`/`ino` 与 `strace` 行为
-- [ ] 用 `strace -e openat,read,write,close` 与 `/proc/<pid>/fdinfo` 复现问题
-- [ ] 写路径 `ENOSPC` 有运维 runbook：`df`/`df -i`/`lsof +L1`/volume 配额
-- [ ] 异步读盘：评估 io_uring 或线程池 + `pread`；勿假设 libaio 覆盖普通文件
-- [ ] 持久化：`write` 成功后按需 `fsync`；掉电场景不用 `O_DIRECT`  alone 代替 fsync
 
 ---
 

@@ -340,15 +340,6 @@ grep -r interrupt /proc/device-tree/ 2>/dev/null | head
 
 ---
 
-## Checklist
-
-- [ ] 能用自己的话区分：硬件 IRQ 线、GIC INTID、Linux virq
-- [ ] 能画出：外设 → GIC → CPU 向量 → `irq_desc` → handler
-- [ ] 知道 SPI / PPI / SGI 各自典型用途
-- [ ] 说明为何 hardirq 里不能 `mutex_lock`
-- [ ] 会看 `/proc/interrupts`、`/proc/softirqs`，并改 `smp_affinity`
-- [ ] 能在驱动里正确选择 `request_irq` vs `request_threaded_irq`
-- [ ] 对照板子设备树，找到某个外设的 `GIC_SPI` 号并在 `/proc/interrupts` 对上名字
 
 ---
 

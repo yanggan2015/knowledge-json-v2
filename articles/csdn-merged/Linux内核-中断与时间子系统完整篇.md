@@ -291,17 +291,6 @@ adjtimex -p                                    # 查看 tick 微调状态
 
 ---
 
-## Checklist
-
-- [ ] 能口述「clockevent 到期 → tick → jiffies++ → hrtimer_interrupt」与「IRQ → irq_exit → __do_softirq」两条链，并指出对应源文件
-- [ ] 读 `/proc/interrupts` 与 `/proc/softirqs`，确认 IRQ/softirq 未单核打满
-- [ ] 区分 clocksource（读时）与 clockevent（到时），能查看 `current_clocksource`
-- [ ] 按精度在 `timer_list`/jiffies 与 hrtimer 间正确选型；延迟测量用 `CLOCK_MONOTONIC`
-- [ ] 核对 `CONFIG_HZ`、`CONFIG_HIGH_RES_TIMERS`、`CONFIG_NO_HZ` 与现场现象一致
-- [ ] 中断风暴时定位 IRQ 号，确认 handler 清源与 irq_chip ack/eoi 顺序
-- [ ] NO_HZ 环境下理解 idle 核 jiffies 更新变慢属预期；busy 延迟异常才查丢失 tick
-- [ ] 生产用 chrony 监控 offset；NTP step 后检查依赖 `CLOCK_REALTIME` 的业务
-- [ ] 高 PPS 场景评估 IRQ affinity、NAPI、中断合并与 RPS/XPS 组合，改动前后有 P99 基线
 
 ---
 

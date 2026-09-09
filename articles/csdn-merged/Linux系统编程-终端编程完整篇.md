@@ -441,19 +441,6 @@ cat /proc/self/fdinfo/0
 
 ---
 
-## Checklist
-
-- [ ] 改 termios 前 `tcgetattr` 保存副本；所有退出路径（含 signal handler 里 `_exit` 前）`tcsetattr` 恢复或 shell 可 `stty sane`
-- [ ] 密码输入：清 **`ECHO`**（及常 `ECHOE`），不要只 `printf("*")` 而不改内核标志
-- [ ] 全屏/逐键读：确认 **`ICANON` off** + 明确 **`VMIN`/`VTIME`**；文档化与 `cfmakeraw` 的差异
-- [ ] PTY 父进程 **`close(slave)`**；子进程 `dup2` 后关闭多余 fd；需要控制终端时再 `TIOCSCTTY`+`setsid`
-- [ ] 可交互程序在 **非 TTY**（CI/管道）下降级：检测 `isatty`，勿假定 `ICANON` 行读
-- [ ] 处理 **`SIGWINCH`**：`ioctl(TIOCGWINSZ)` 重绘；handler 内仅置 flag，主循环里刷新
-- [ ] 非阻塞 TTY：`O_NONBLOCK` 或 `VMIN=0,VTIME=0`+`poll`；区分 **`EAGAIN`** 与 **`EINTR`**
-- [ ] resize/SSH：`TIOCSWINSZ` 作用在 **slave**；确认前台进程组能收到 SIGWINCH
-- [ ] 用 **`stty -a`**、**`script`**、**`python3 -m pty`** 复现用户环境；`strace -e ioctl,read` 对照内核行为
-- [ ] 读码对照 **`n_tty.c`** 的 `n_tty_set_termios`/`n_tty_read` 与 **`pty.c`** 的 open 路径，避免与 serial 文档混淆
-- [ ] 内核读码顺序建议：`tty_read`（`tty_io.c`）→ `ldisc->read` → `n_tty_read`；ioctl 窗口走 `tty_ioctl` → `tty_set_winsz`
 
 ---
 

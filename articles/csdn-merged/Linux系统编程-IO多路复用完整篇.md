@@ -428,21 +428,6 @@ sudo sysctl -w fs.epoll.max_user_watches=2000000
 
 ---
 
-## Checklist
-
-- [ ] 能说明 **就绪** 与 **完成** 的区别；LT/ET/ONESHOT 语义与代码行为一致
-- [ ] 指出 `do_epoll_ctl` / `ep_poll` 在 `fs/eventpoll.c`，`select`/`poll` 在 `fs/select.c`
-- [ ] 高并发 Linux 服务默认 **epoll + 非阻塞**；ET 必须读到 `EAGAIN`
-- [ ] 连接关闭路径有 `EPOLL_CTL_DEL`（或等价生命周期），防 fd 复用野事件
-- [ ] 检查 `ulimit -n` 与 `max_user_watches`；select 注意 `FD_SETSIZE`
-- [ ] `EPOLLONESHOT` 有明确的 `MOD` 重新武装路径
-- [ ] 多 accept / 多 epoll 线程有防惊群策略（reuseport、分片、ONESHOT）
-- [ ] 用 `strace`/`ss`/`perf` 验证 wait 占比与 fd 泄漏
-- [ ] ET 读写均有 **drain 至 EAGAIN** 的完整循环；LT 明确是否允许留缓冲
-- [ ] 多线程 accept 选定 **reuseport / 单 accept / ONESHOT** 之一并文档化
-- [ ] timerfd / eventfd 接入后 **`read` 消费计数**，避免 LT 重复就绪
-- [ ] 避免 `epoll_wait(..., 0)` 无节流 busy-loop；周期任务优先 timerfd
-- [ ] 百万连接场景检查 **`max_user_watches`** 与 `ulimit -n` 联动
 
 ---
 

@@ -425,30 +425,6 @@ ss -s | head
 
 ---
 
-## Checklist
-
-生产上线前建议用 `strace -c` 统计 syscall 占比，确认不存在 accept 或 read 热循环中多余的 `fcntl`/`getsockopt` 调用；用 `ss -s` 建立 TCP 状态基线，便于故障时对比 orphan/TW 计数。
-
-- [ ] `socket` 使用 `SOCK_CLOEXEC`；需要非阻塞则 `SOCK_NONBLOCK` 或 `fcntl O_NONBLOCK`
-- [ ] 服务端 `bind` 前设 `SO_REUSEADDR`；多进程同端口评估 `SO_REUSEPORT`
-- [ ] `listen(backlog)` 与 `somaxconn`/`tcp_max_syn_backlog` 匹配高并发；`ss -lnt` 看队列
-- [ ] `accept` 返回新 fd，父 listen fd 不可关；异常路径 `close(cfd)` 防 `EMFILE`
-- [ ] 非阻塞 `connect`：接受 `EINPROGRESS` → `poll`/`epoll` 可写 → `getsockopt(SO_ERROR)`
-- [ ] `read`/`write`/`send`/`recv` 处理 `EINTR` 与短返回；TCP 按字节流循环读
-- [ ] 写路径处理 `EPIPE`：`MSG_NOSIGNAL` 或忽略 `SIGPIPE`
-- [ ] `TCP_NODELAY`、`SO_KEEPALIVE`、缓冲大小在 `connect`/`listen` 前 `setsockopt`
-- [ ] UDP 不假设可靠；大包注意 MTU；`connect` 后注意 `ECONNREFUSED` 异步到达
-- [ ] `bind EADDRINUSE` 用 `ss -lntp` 与 TIME_WAIT 状态对照，而非盲目换端口
-- [ ] `strace -yy -e network` 复现建连/收发；与 `net/socket.c` 入口对照
-- [ ] `ss -tin`/`ss -s` 看重传、orphan、半连接；`ping` 通不代表 TCP 通
-- [ ] 区分应用阻塞、TCP 窗口、`Send-Q` 满、对端不读；必要时查协议栈篇 qdisc/驱动
-- [ ] 长连接配置 keepalive 或应用心跳；防火墙/NAT 超时纳入设计
-- [ ] 高并发：`accept4` 循环至 `EAGAIN`；`cfd` 非阻塞 + epoll ET drain
-- [ ] `send_all`/`recv` 循环处理短返回；`MSG_NOSIGNAL` 防 SIGPIPE
-- [ ] `TIME_WAIT` 导致 bind 失败时先 `ss -o state time-wait`，再决定 `SO_REUSEADDR`
-- [ ] 内核读码：`__sys_connect` → `tcp_v4_connect`；`__sys_sendto` → `tcp_sendmsg` 路径能口述
-- [ ] 关闭顺序：`shutdown` 半关闭或 `close`；`SO_LINGER` 行为团队内一致
-- [ ] 排障顺序：strace → ss → tcpdump → sysctl/防火墙 diff，每步有命令输出留存
 
 ---
 

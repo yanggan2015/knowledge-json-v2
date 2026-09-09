@@ -191,15 +191,6 @@ cat /proc/buddyinfo
 dmesg -T | tail -50
 ```
 
-## Checklist
-
-- [ ] 能说出 `alloc_pages` → zone 水位 → kswapd 的关系
-- [ ] 能画出 `handle_mm_fault` 下匿名/文件/swap 三条分支
-- [ ] 区分 `Cached` 与真正不可回收的 RSS；会看 `MemAvailable`
-- [ ] 会用 `pgmajfault`、`VmSwap` 判断是否在换页/读盘
-- [ ] 容器场景检查过 `memory.max` / `memory.events`
-- [ ] 关键进程配置过 `oom_score_adj` 并验证 `/proc/<pid>/oom_score_adj`
-- [ ] 调 THP / dirty 参数前记录 baseline 与 `dmesg` OOM 日志
 
 ---
 

@@ -157,15 +157,6 @@ cat /proc/<pid>/sched
 
 ---
 
-## Checklist
-
-- [ ] 能指出 `schedule` → `__schedule` → `pick_next_task` → CFS/`rt` 的文件位置
-- [ ] 能说明 vruntime 与 nice 权重的关系，以及睡眠任务为何出队
-- [ ] 面对 `D` 状态会先查内核栈与 IO，而不是只加 CPU
-- [ ] 会用 `chrt`/`taskset`/`cpu.max` 做策略、亲和与配额验证
-- [ ] 会用 `perf sched latency/map` 看切换与延迟
-- [ ] 知道僵尸需父进程回收，能解释 fork 风暴的危害
-- [ ] 理解 RT/DL 优先于 CFS，并知道 RT 带宽限制入口
 
 ---
 

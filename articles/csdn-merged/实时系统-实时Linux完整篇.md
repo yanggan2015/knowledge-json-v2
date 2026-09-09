@@ -311,17 +311,6 @@ cat /proc/<pid>/stack
 
 ---
 
-## Checklist
-
-- [ ] 确认 `CONFIG_PREEMPT_RT=y`（或运行 `-rt` 内核），而非仅 `CONFIG_PREEMPT=y`
-- [ ] 对照 `kernel/irq/manage.c` 理解 threaded IRQ；生产 cmdline 评估 `threadirqs`
-- [ ] 理解 RT 下 `spin_lock()` 可睡眠语义，审查驱动与自研模块临界区
-- [ ] 配置 `isolcpus` / `nohz_full` / `rcu_nocbs` 并 `taskset` RT 线程到隔离核
-- [ ] 知晓 `sched_rt_runtime_us` 节流含义，避免 RT 饿死 housekeeping 或误触 throttling
-- [ ] 用 `cyclictest -p -m -c -h` 测 Max latency，并与 stress 组合压测
-- [ ] 尖刺时用 ftrace preempt/irq off、`/proc/interrupts`、`perf sched latency` 分层定位
-- [ ] 文档化 BIOS（C-states、SMI）、内核 cmdline、IRQ affinity 与 cyclictest 验收 Max 基线
-- [ ] 内核/驱动升级后重跑 stress + cyclictest 回归，对比历史 Max
 
 ---
 

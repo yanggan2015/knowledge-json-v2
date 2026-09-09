@@ -213,16 +213,6 @@ sleep 2; systemctl is-active myagent
 
 ---
 
-## Checklist
-
-- [ ] 新服务默认 **前台运行 + systemd `Type=simple`**，不重复 daemonize
-- [ ] 若必须自 daemonize：与 `Type=forking`/`PIDFile=` 对齐
-- [ ] 处理 `SIGTERM`（及可选 `SIGHUP`），`stop` 可在超时前退出
-- [ ] 日志进入 journal 或明确的文件轮转策略
-- [ ] `User=` 降权；运行时文件落在 `/run`，配置在 `/etc`
-- [ ] 依赖目标（网络、本地挂载）在 unit 中声明
-- [ ] `enable` 后重启主机服务仍在；`stop`/`restart` 行为符合预期
-- [ ] 单实例有保障（systemd 或锁文件），避免双进程抢资源
 
 ---
 

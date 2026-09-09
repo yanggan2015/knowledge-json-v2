@@ -65,3 +65,15 @@
 | 2026-09-08 | `csdn-merged/嵌入式系统-嵌入式网络完整篇.md` | 嵌入式网络完整篇：从 LwIP/以太网驱动到 Linux netdev 与排障 | 已发布 | 164702699 / https://mp.csdn.net/mp_blog/creation/success/164702699 | 合并源：嵌入式系统/chapters/061,062,063,064,065,066-嵌入式网络* |
 | 2026-09-08 | `csdn-merged/实时系统-实时调度完整篇.md` | 实时调度完整篇：从 RMS/EDF、优先级到 Linux SCHED_FIFO/Deadline 排障 | 已发布 | 164702882 / https://mp.csdn.net/mp_blog/creation/success/164702882 | 合并源：实时系统/chapters/009,010,011,012,013,014-实时调度* |
 | 2026-09-08 | `csdn-merged/实时系统-实时Linux完整篇.md` | 实时 Linux 完整篇：从 PREEMPT_RT、线程化中断到 cyclictest 验证 | 已发布 | 164703078 / https://mp.csdn.net/mp_blog/creation/success/164703078 | 合并源：实时系统/chapters/065,066,067,068,069,070-实时Linux* |
+| 2026-09-09 | `csdn-merged/Linux运维-systemd服务管理完整篇.md` | Linux systemd 服务管理：从 unit 文件到 systemctl 启停与排障 | 已发布 | 164758917 / https://mp.csdn.net/mp_blog/creation/success/164758917 | 日上限实测 |
+| 2026-09-09 | `csdn-merged/Linux运维-定时任务cron与systemd-timer完整篇.md` | Linux 定时任务：crontab、anacron 与 systemd timer | 已发布 | 164758922 / https://mp.csdn.net/mp_blog/creation/success/164758922 | 日上限实测 |
+| 2026-09-09 | `csdn-merged/Linux运维-日志管理journald完整篇.md` | Linux 日志管理：journald、rsyslog 与 logrotate | 已发布 | 164758925 / https://mp.csdn.net/mp_blog/creation/success/164758925 | 日上限实测 |
+| 2026-09-09 | `csdn-merged/Linux运维-防火墙nftables完整篇.md` | Linux 防火墙：nftables 与 iptables 兼容层 | 已发布 | 164758927 / https://mp.csdn.net/mp_blog/creation/success/164758927 | 日上限实测 |
+| 2026-09-09 | `csdn-merged/Linux运维-性能监控完整篇.md` | Linux 性能监控：CPU、内存、IO 与常用工具 | 已发布 | 164758934 / https://mp.csdn.net/mp_blog/creation/success/164758934 | 日上限实测 |
+| 2026-09-09 | `csdn-merged/Linux运维-权限与ACL完整篇.md` | Linux 权限：模式位、ACL 与 capability | 已发布 | 164758939 / https://mp.csdn.net/mp_blog/creation/success/164758939 | 日上限实测 |
+| 2026-09-09 | `csdn-merged/Linux运维-磁盘与文件系统管理完整篇.md` | Linux 磁盘管理：分区、文件系统、挂载与扩容 | 已发布 | 164758944 / https://mp.csdn.net/mp_blog/creation/success/164758944 | 日上限实测 |
+| 2026-09-09 | `csdn-merged/Linux运维-网络配置完整篇.md` | Linux 网络配置：iproute2、DNS 与连通性排障 | 已发布 | 164758947 / https://mp.csdn.net/mp_blog/creation/success/164758947 | 日上限实测 |
+| 2026-09-09 | `csdn-merged/实时系统-实时内核PREEMPT_RT完整篇.md` | 实时 Linux：PREEMPT_RT、延迟来源与观测 | 已发布 | 164758949 / https://mp.csdn.net/mp_blog/creation/success/164758949 | 日上限实测 |
+| 2026-09-09 | `csdn-merged/实时系统-实时通信完整篇.md` | 实时通信：共享内存、消息队列与确定性数据路径 | 已发布 | 164758953 / https://mp.csdn.net/mp_blog/creation/success/164758953 | 日上限实测 |
+| 2026-09-09 | `csdn-merged/嵌入式系统-低功耗设计完整篇.md` | 嵌入式低功耗：休眠、时钟门控与唤醒源 | 草稿 | 164758959 / https://editor.csdn.net/md?articleId=164758959 | 日上限后存草稿 |
+| 2026-09-09 | `csdn-merged/嵌入式系统-嵌入式调试完整篇.md` | 嵌入式调试：串口、printk、ftrace 与现场抓取 | 草稿 | 164758964 / https://editor.csdn.net/md?articleId=164758964 | 日上限后存草稿 |

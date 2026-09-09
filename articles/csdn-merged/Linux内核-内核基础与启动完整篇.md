@@ -281,17 +281,6 @@ Run /sbin/init as init process        # run_init_process 成功
 
 ---
 
-## Checklist
-
-- [ ] 能口述 `head*.S` → `start_kernel` → `rest_init` → `kernel_init` → `run_init_process` 主链，并指出 `init/main.c` / `do_mounts.c` / `init.h`
-- [ ] 分清卡点在：解压前、`setup_arch` 前、`console_init` 前、某 initcall、挂根、还是 exec init
-- [ ] 会用 `initcall_debug` + `earlycon`/`console=` 拿到可定位日志
-- [ ] `uname -r`、`/lib/modules/$(uname -r)`、initramfs 三者一致；换内核后已重建
-- [ ] `root=` / `rootwait` / `rootfstype=` / `rdinit` / `init=` 与板级或云盘实际设备匹配
-- [ ] 根设备驱动在内核内建或 initramfs 内（云主机核对 virtio；嵌入式核对 mmc/nvme）
-- [ ] 排障临时参数（`init=/bin/sh`、`single`、`acpi=off` 等）未污染生产 cmdline
-- [ ] 启动变慢时先 `initcall_debug` / `systemd-analyze`，再谈裁剪与并行
-- [ ] 能根据 `dmesg` 关键字把阶段映射到源码文件（`head*.S` / `main.c` / `do_mounts.c` / 用户态 init）
 
 ---
 

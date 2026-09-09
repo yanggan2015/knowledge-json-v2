@@ -386,16 +386,6 @@ kill -RTMIN+1 <pid>   # 连发 5 次
 
 ---
 
-## Checklist
-
-- [ ] 全部用 `sigaction`，明确 `SA_SIGINFO`/`SA_RESTART`/`sa_mask`；禁用 `signal()`；`SIGPIPE` 等常需显式 `SIG_IGN` 或 handler
-- [ ] handler 仅 async-signal-safe；复杂逻辑经 `sig_atomic_t`、self-pipe 或 `signalfd` 转交主循环；handler 内保存/恢复 `errno`
-- [ ] 多线程明确「谁阻塞、谁处理」；工作线程 `pthread_sigmask` 阻塞异步信号；`signalfd`/`sigwait` 前先 block 目标信号
-- [ ] 需多次通知或带 `siginfo` 时用 `SIGRTMIN+n`；`SIGCHLD` 在 handler 内 `waitpid` 循环直到 `WNOHANG` 返回 0
-- [ ] 慢 syscall 要么 `SA_RESTART`，要么 `while` 重试；可中断 I/O 则 intentional 处理并写清注释
-- [ ] daemon 捕获 `SIGTERM`/`SIGHUP` 做优雅退出与 reload；子进程必须 wait 防僵尸
-- [ ] `strace` 确认 `rt_sigaction`/`rt_sigprocmask`/`rt_sigreturn`；`/proc/<pid>/status` 对照 SigPnd/SigBlk/ShdPnd
-- [ ] 与 epoll 集成优先 signalfd；自管道 fd 设 `O_NONBLOCK` 防 handler 阻塞
 
 ---
 

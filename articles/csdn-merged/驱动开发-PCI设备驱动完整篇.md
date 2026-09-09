@@ -200,16 +200,6 @@ cat /sys/bus/pci/devices/0000:03:00.0/enable
 
 ---
 
-## Checklist
-
-- [ ] 能指出 `pci_register_driver` → `pci_match_device` → `pci_device_probe` → `probe` 的源码文件
-- [ ] `lspci -nn` 与驱动 `pci_device_id` 逐字段对照（含 subsystem 若写死）
-- [ ] sysfs 下 `driver` 符号链接存在，且 `enable` 为 1
-- [ ] probe 内顺序：`enable` → `request_regions` → `set_master` → 映射 BAR
-- [ ] DMA 问题先查 Bus Master、IOMMU、`dma_mask`
-- [ ] 依赖未就绪用 `-EPROBE_DEFER`，并查 `devices_deferred`
-- [ ] `remove`/`shutdown` 路径停中断与 DMA，无 UAF
-- [ ] `MODULE_DEVICE_TABLE` 存在，`modinfo` alias 与 ID 一致
 
 ---
 

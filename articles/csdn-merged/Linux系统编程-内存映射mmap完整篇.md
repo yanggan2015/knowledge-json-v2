@@ -193,16 +193,6 @@ dd if=/dev/zero of=/tmp/t bs=4096 count=1
 
 ---
 
-## Checklist
-
-- [ ] `length>0`、`offset` 页对齐；失败时打印 `errno`
-- [ ] 共享语义选对 `MAP_SHARED`/`PRIVATE`；匿名用 `MAP_ANONYMOUS` 且 fd=-1
-- [ ] `/proc/self/maps` 能看到对应 VMA 与权限
-- [ ] 理解「mmap 成功 ≠ 已分配页」；大页/锁页场景另验 `mlock`
-- [ ] 驱动校验映射范围；物理窗设置正确 cache 属性
-- [ ] `munmap`/文件释放/模块卸载无 UAF；`vm_ops.close` 对称
-- [ ] 截断、权限不足、缺页失败路径有明确信号/返回值
-- [ ] 性能场景对比 `read` vs `mmap`，避免无依据的「全面 mmap」
 
 ---
 

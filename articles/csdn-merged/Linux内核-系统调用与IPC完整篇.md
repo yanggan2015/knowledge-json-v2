@@ -167,15 +167,6 @@ ls -l /dev/shm              # POSIX shm 常见挂载点
 ```
 ---
 
-## Checklist
-
-- [ ] 能说明 syscall 入口：保存寄存器 → 查表 → `sys_xxx` → 返回
-- [ ] 知道何时可能走 VDSO，并用 `/proc/self/maps` 确认
-- [ ] 按「是否共享地址空间 / 是否需要传 fd / 是否要进 epoll」选 IPC
-- [ ] 共享内存路径有明确同步协议，而不是「先跑起来再说」
-- [ ] 会用 `strace -c`/`perf trace` 找 syscall 热点
-- [ ] 容器场景核对过 seccomp 与 `ptrace_scope`
-- [ ] 理解 `copy_from_user` 失败返回 `-EFAULT` 的边界含义
 
 ---
 

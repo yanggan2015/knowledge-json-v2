@@ -213,15 +213,6 @@ btmon
 | BLE 连接秒断 | 连接间隔、监督超时、供电、干扰 |
 | 音频无声 | Pulse/PipeWire、编解码、profile |
 
-## Checklist
-
-- [ ] 能区分：HCI 驱动、内核协议栈、bluetoothd 用户态三层职责
-- [ ] 知道 `hci_alloc_dev` → `hci_register_dev` 后才有 `hci0`
-- [ ] 会用 `btmon` 看命令超时还是链路断开
-- [ ] 清楚 RFCOMM/L2CAP/SCO 各自典型用途
-- [ ] UART 蓝牙查过波特率与固件；combo 查过与 WiFi 共存/rfkill
-- [ ] 根文件系统确认 D-Bus + bluetoothd（若用 BlueZ 标准栈）
-- [ ] 音频问题先查用户态 profile，再查 SCO/A2DP 链路
 
 ---
 

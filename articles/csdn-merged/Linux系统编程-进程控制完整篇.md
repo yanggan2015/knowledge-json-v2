@@ -306,16 +306,6 @@ ulimit -u 64; ./test_fork_storm
 
 ---
 
-## Checklist
-
-- [ ] 每个 `fork`/`posix_spawn` 出的子进程，在父进程（或监督者）中有 **唯一对应的 wait/waitpid/waitid** 路径
-- [ ] 子进程在 `exec*` **失败** 后立刻 `_exit` 非零，且父进程检查 `WIFEXITED`/`WEXITSTATUS`
-- [ ] 不应使用 `vfork` 除非维护遗留代码；新代码优先 **posix_spawn** 或运行时提供的进程 API
-- [ ] fork 前对不应继承的 fd 设置 **FD_CLOEXEC**；或通过 spawn 文件 action 关闭/ dup
-- [ ] 解析退出状态用 **`WIFEXITED`/`WEXITSTATUS`/`WIFSIGNALED`/`WTERMSIG`**，不直接打印 raw `status`
-- [ ] 多线程程序若必须 fork，仅在 **async-signal-safe** 上下文调用，或改用不 fork 的模型
-- [ ] 生产排障：`ps` 查 `Z` 状态 → 定位 **PPID** → 确认该父进程是否缺少 wait 或 SIGCHLD 处理
-- [ ] 需要防 pid 复用竞态时，评估 **pidfd_open** / `waitid` + `P_PIDFD`
 
 ---
 

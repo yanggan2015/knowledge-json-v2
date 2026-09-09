@@ -195,15 +195,6 @@ mount -t bpf bpf /sys/fs/bpf
 | 在生产长期开 function tracer | 吞吐断崖 | 限时、窄 filter、事后关闭 |
 ---
 
-## Checklist
-
-- [ ] 调优前有书面 baseline（负载描述 + 关键指标）
-- [ ] 能说明 ftrace / perf / eBPF 各自擅长的问题类型
-- [ ] 会用 `perf record -g` + `report` 定位用户/内核热点
-- [ ] 会在 tracefs 上做一次窄过滤的 function 追踪并关闭
-- [ ] 优先选用 tracepoint，明白 kprobe 的开销与版本风险
-- [ ] 知道 `perf_event_paranoid` 与 tracefs 挂载对工具的影响
-- [ ] 每次改动可回滚，并用同一负载复测验证
 
 ---
 

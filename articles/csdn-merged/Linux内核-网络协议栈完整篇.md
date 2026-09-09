@@ -160,16 +160,6 @@ FIB 最长前缀匹配选路；ARP/NDISC 解析下一跳。`ping` 通只说明 I
 
 ---
 
-## Checklist
-
-- [ ] 能口述 `sock_sendmsg` → `tcp_sendmsg` → `ip_queue_xmit` → `dev_queue_xmit` → `ndo_start_xmit` 及文件位置
-- [ ] 能口述收包：`napi_schedule` → `napi_poll` → `netif_receive_skb` → `ip_rcv`/`tcp_v4_rcv` → `sk_data_ready`
-- [ ] 分清瓶颈在应用阻塞、TCP 窗口/拥塞、qdisc、还是驱动 ring（`ss`/`tc`/`ethtool`）
-- [ ] 调 `tcp_rmem`/`wmem` 前算过 BDP，并确认 `rmem_max`/`wmem_max` 未截断
-- [ ] 启用 BBR 时已确认 qdisc 为 `fq`（或等价 pacing）
-- [ ] `connect` 失败查过半连接队列、防火墙与路由对称性，而非只加超时
-- [ ] 非对称路由评估过 `rp_filter`；GRO 大包未误判为网卡故障
-- [ ] 调优前有 `ss`/`nstat`/`softnet_stat` 基线，配置可回滚
 
 ---
 

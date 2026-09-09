@@ -158,15 +158,6 @@ echo function > /sys/kernel/debug/tracing/current_tracer
 
 ---
 
-## Checklist
-
-- [ ] 能按「能否睡眠 / 持锁时长 / 是否进中断」选出 spinlock、mutex、rwsem、RCU
-- [ ] 知道同一锁若在 IRQ 中使用，进程侧必须 `irqsave`（或等价关闭）
-- [ ] 能说明 `call_rcu` 与 `synchronize_rcu` 的差异
-- [ ] 写驱动时定义了锁顺序，并在调试内核上跑过 lockdep
-- [ ] 会用 `perf lock` 看争用，而不是只靠猜
-- [ ] 理解 RCU 读侧约束与写侧宽限期成本
-- [ ] 能区分「死锁」与「活锁/长时间自旋」的表象差异
 
 ---
 

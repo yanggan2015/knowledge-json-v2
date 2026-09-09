@@ -418,21 +418,6 @@ gdb -p <pid> -batch -ex 'call (void)write(2,"mark\n",5)'
 
 ---
 
-## Checklist
-
-- [ ] 按「单向/双向、是否传 fd、数据量、是否离散消息」完成选型，而不是默认 socket
-- [ ] pipe/FIFO：确认读写端 close 顺序；处理 `SIGPIPE` 或 `MSG_NOSIGNAL`；知 pipe 容量与 `F_SETPIPE_SZ`
-- [ ] FIFO：两端 open 策略明确；路径权限与容器 mount 可见
-- [ ] 通知用 eventfd/signalfd 进 epoll，payload 走 shm/socket/pipe
-- [ ] 传 fd：`sendmsg`/`recvmsg` + `SCM_RIGHTS` 完整 cmsg；约定发送方何时 close
-- [ ] SysV vs POSIX mq：按上表选 API；POSIX 查 `/dev/mqueue` 与 `mqueue/*` sysctl
-- [ ] 共享内存：futex/pshared mutex 或 seqlock；禁止无锁多写
-- [ ] 容器：确认 ipc/mount ns；FIFO 路径与 volume 一致；`--ipc host` 仅必要时
-- [ ] 排障：`strace -f`、`ipcs -a`、`ss -xlp`、`lsns -p` 组合复现
-- [ ] 压测对比 pipe 拷贝 vs shm+mmap，用数据证明选型而非习惯
-- [ ] 主循环 fd 化：socket + eventfd + signalfd + timerfd 统一 epoll
-- [ ] 容器 IPC：Sidecar 与主进程 volume 路径一致；SysV key 重启失效改 memfd
-- [ ] Unix socket：抽象命名或删 stale `.sock`；`EADDRINUSE` 先 `ss -xlp` 再 unlink
 
 ---
 

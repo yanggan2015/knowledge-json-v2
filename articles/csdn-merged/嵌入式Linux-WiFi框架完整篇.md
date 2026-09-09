@@ -197,15 +197,6 @@ iw dev wlan0 link
 cat /sys/kernel/debug/ieee80211/*/stations/*/rc_stats 2>/dev/null  # SoftMAC 示例
 ```
 
-## Checklist
-
-- [ ] 能画出：用户态 → nl80211 → cfg80211 → FullMAC/mac80211 → 固件 → 硬件
-- [ ] 能判断本板驱动是 FullMAC 还是 SoftMAC
-- [ ] 关联路径上知道必须有 `cfg80211_connect_*` 类结果回调
-- [ ] 会用 `iw` / `rfkill` / `dmesg` 区分「没模组」与「上层配置错」
-- [ ] 清楚 STA/AP 并发依赖 `interface_combinations`
-- [ ] 查过固件路径与设备树电源/中断
-- [ ] 吞吐问题先排除省电与总线，再查 802.11 层
 
 ---
 

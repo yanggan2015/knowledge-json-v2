@@ -342,20 +342,6 @@ perf stat -e context-switches,cpu-migrations -p $(pidof myapp) sleep 5
 
 ---
 
-## Checklist
-
-上线或 Code Review 线程模块前，请逐项勾选（生产环境建议存档备查）：
-
-- [ ] 能画出 `pthread_create` → `clone` → `kernel_clone` → `copy_process` 的调用关系
-- [ ] 知道线程与 fork 在 `CLONE_VM`/`CLONE_THREAD` 上的差异，会用 `gettid` 排障
-- [ ] 创建前明确 **join 还是 detach**，线程池有统一回收策略
-- [ ] 按负载设置 `pthread_attr_setstacksize`，大规模线程验证过 `vm.max_map_count`
-- [ ] mutex/cond 成对使用，`cond_wait` 外层用 `while`，理解 futex 慢路径
-- [ ] `__thread`/TSD 不跨线程共享指针；`errno` 不被其他线程间接读取
-- [ ] 多线程进程避免裸 `fork`+`system`；必要时 `pthread_atfork` 或 `posix_spawn`
-- [ ] 死锁时用 `strace futex` / `gdb thread apply all bt` 定位，锁顺序文档化
-- [ ] 多线程 + 外部命令执行路径已改为 `posix_spawn` 或单线程 fork 包装
-- [ ] 高线程数服务核对过 `/proc/pid/maps` 行数与 `vm.max_map_count`
 
 ---
 
