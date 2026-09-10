@@ -101,3 +101,4 @@
 | 2026-09-10 | `csdn-merged/驱动开发-PCI与PCIe硬件原理配置空间BAR与Linux驱动完整篇.md` | PCI 与 PCIe 完整篇：硬件拓扑 → 报文协议 → 配置/BAR → Linux 驱动（一条主线讲透） | 已发布 | 164885887 / https://mp.csdn.net/mp_blog/creation/success/164885887 | 按新标准重写：阅读地图+六层主线；≥500行；替换同日旧版结构 |
 | 2026-09-10 | `csdn-merged/嵌入式系统-ATF-TEE-REE与ARM异常级别EL安全体系完整篇.md` | ATF / TEE / REE 与 EL 完整篇：TrustZone 边界 → 软件栈 → 异常级 → 切换路径（一条主线讲透） | 已发布 | 164885892 / https://mp.csdn.net/mp_blog/creation/success/164885892 | 按新标准重写：阅读地图+六层主线；切换路径为重点；替换同日旧版结构 |
 | 2026-09-10 | `csdn-merged/嵌入式系统-Yocto完整解析从零搭建与配方编辑.md` | Yocto 完整解析：原理、从零搭建环境与配方/配置文件怎么改 | 已发布 | 164885909 / https://mp.csdn.net/mp_blog/creation/success/164885909 | 用户指定：Yocto 原理+从零环境+编辑文件完整解析 |
+| 2026-09-10 | `csdn-merged/系统设计-AI操作系统设计文档与主流OS对比分析.md` | AI 操作系统设计文档：国内外主流 OS 对比、优缺点综合与 AI 原生架构方案 | 已发布 | 164885940 / https://mp.csdn.net/mp_blog/creation/success/164885940 | 用户指定：主流OS对比+综合优缺点+AI操作系统设计文档 |
