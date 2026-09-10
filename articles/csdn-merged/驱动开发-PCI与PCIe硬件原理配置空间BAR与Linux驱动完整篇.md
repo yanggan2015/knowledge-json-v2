@@ -1,8 +1,15 @@
-# PCI 与 PCIe 硬件原理、配置空间/BAR 与 Linux 驱动完整篇：从 LTSSM、TLP 到 ECAM 与 probe
+# PCI 与 PCIe 完整篇：硬件拓扑 → 报文协议 → 配置/BAR → Linux 驱动（一条主线讲透）
 
-板卡 `lspci -vvv` 能看到设备，BAR 却全是 0；链路训练卡在 Detect、RC 下挂 EP 永远枚举不到；驱动 probe 里 `pci_iomap` 成功但读寄存器全 0xff——这类问题往往不在驱动写法，而在 PCI/PCIe 硬件分层、配置空间语义、资源分配顺序没对齐。PCI 是并行共享总线；PCIe 是点对点串行协议栈，但软件仍通过同一套配置空间与 BAR 抽象设备。本文从总线演进、拓扑与 LTSSM、TLP/DLLP 报文、Type0/Type1 配置空间、BAR 探测、INTx/MSI/MSI-X、ECAM 访问路径，到 `pci_register_driver`/probe/DMA/sysfs/lspci，以及嵌入式 SoC Root Complex 的时钟复位与设备树，按内核真实路径合成一篇可对照源码动手验证的闭环。
+板卡 `lspci -vvv` 能看到设备，BAR 却全是 0；链路训练卡在 Detect、RC 下挂 EP 永远枚举不到；驱动 probe 里 `pci_iomap` 成功但 `readl` 全 0xff——这类问题往往不在驱动写法，而在 PCI/PCIe 硬件分层、配置空间语义、资源分配顺序没对齐。PCI 是并行共享总线；PCIe 是点对点串行协议栈，但软件仍通过同一套配置空间与 BAR 抽象设备。本文沿一条主线：硬件拓扑 → TLP 报文 → 配置/BAR → 中断/DMA → Linux probe → SoC 排障，所有路径对齐 Linux 内核 `drivers/pci/` 真实源码，读完能对照 `lspci` 与 sysfs 动手验证。
 
----
+## 阅读地图
+
+1. **第一层：硬件与拓扑**——解决「PCI 和 PCIe 物理上差在哪、RC/Switch/EP 怎么连、LTSSM 为何导致 lspci 看不到设备」。
+2. **第二层：协议与报文**——解决「软件 `readl`/`pci_read_config_dword` 背后真正在链路上飞的是什么 TLP、Posted 与 Non-Posted 有何差异」。
+3. **第三层：配置空间与 BAR**——解决「Type0/Type1 各字段含义、Capability 链表、ECAM 怎么算地址、BAR sizing 与 Linux `resource[]` 如何对应」。
+4. **第四层：中断与 DMA**——解决「INTx/MSI/MSI-X 怎么选、`pci_set_master` 与 `dma_set_mask` 何时必须做、IOMMU 边界在哪」。
+5. **第五层：Linux 驱动实现**——解决「`pci_register_driver` 到 `probe` 的固定顺序、匹配规则、sysfs 与 lspci 怎么交叉验证」。
+6. **第六层：嵌入式 SoC RC 与分层排障**——解决「dw-pcie / ECAM generic 的时钟复位 DT 字段、FFFF/链路/MSI/DMA 分层怎么查」。
 
 ## 源码锚点
 
@@ -135,59 +142,16 @@ int pci_bus_read_config_dword(struct pci_bus *bus, unsigned int devfn,
 }
 ```
 
-`pci_enable_device` 关键路径（`drivers/pci/pci.c`）：
-
-```c
-int pci_enable_device(struct pci_dev *dev)
-{
-    int ret = pci_enable_device_flags(dev, PCI_ENABLE_RESOURCES);
-    if (ret)
-        return ret;
-    return pci_enable_device_flags(dev, PCI_ENABLE_MSI | PCI_ENABLE_MSIX);
-}
-```
-
-`pci_request_regions` 检查 `dev->resource[bar].flags & IORESOURCE_BUSY`，已被其它驱动占用返回 `-EBUSY`。`pci_set_master` 置 `PCI_COMMAND_MASTER` 允许 Bus Master DMA。
-
-最小 PCI 驱动骨架（资源顺序与内核一致）：
-
-```c
-static const struct pci_device_id ids[] = {
-    { PCI_DEVICE(0x8086, 0x1234) },
-    { /* sentinel */ }
-};
-MODULE_DEVICE_TABLE(pci, ids);
-
-static int my_probe(struct pci_dev *pdev, const struct pci_device_id *id)
-{
-    int err = pci_enable_device(pdev);
-    if (err) return err;
-    err = pci_request_regions(pdev, "mydrv");
-    if (err) goto err_disable;
-    pci_set_master(pdev);
-    void __iomem *mmio = pci_iomap(pdev, 0, pci_resource_len(pdev, 0));
-    if (!mmio) { err = -ENOMEM; goto err_release; }
-    return 0;
-err_release:
-    pci_release_regions(pdev);
-err_disable:
-    pci_disable_device(pdev);
-    return err;
-}
-```
-
----
-
 ## 调用链
 
-### 上电 → 链路训练 → 枚举 → 驱动绑定
+### 上电 → LTSSM → 枚举 → probe
 
 ```mermaid
 flowchart TD
     subgraph HW
         RST[PERST# 复位释放]
         REF[REFCLK 稳定]
-        LTSSM[LTSSM: Detect → Polling → L0]
+        LTSSM[LTSSM: Detect → Polling → Configuration → L0]
         TLP_CFG[Cfg TLP 读写配置空间]
     end
     subgraph Linux_PCI_core
@@ -205,7 +169,7 @@ flowchart TD
     SCAN --> BAR --> ADD --> MATCH --> PROBE
 ```
 
-### 配置读写的软件路径（ECAM vs 传统）
+### ECAM 配置访问与 TLP Completion 配对
 
 ```mermaid
 flowchart LR
@@ -224,24 +188,22 @@ flowchart LR
     OPS --> LEG
 ```
 
-### TLP 事务与 Completion 配对（Memory Read 示例）
-
 ```mermaid
 sequenceDiagram
     participant CPU as Root Complex
     participant EP as Endpoint BAR
     CPU->>EP: Mem Read TLP (Addr, Length, Tag, ReqID)
     EP-->>CPU: Completion TLP (Data, Tag, Status)
-    Note over CPU,EP: Tag 关联请求；ReqID 标识发起者 BDF
+    Note over CPU,EP: Non-Posted 读必须等 Cpl；Tag 关联请求
 ```
 
 枚举阶段 host 驱动先注册 `pci_host_bridge`，提供 `struct pci_ops`；`pci_scan_root_bus_bridge()` 对每个 devfn 读 Vendor ID，非 0xFFFF 则 `pci_setup_device()` → `pci_read_bases()` sizing → `pci_bus_assign_resources()` 写回 BAR → `pci_device_add()` 挂到 sysfs。驱动模块 `pci_register_driver()` 后，已注册设备若 `pci_match_device()` 命中 `id_table`，`pci_device_probe()` 调用 `drv->probe()`。
 
----
+## 第一层：硬件与拓扑——PCI 如何变成 PCIe
 
-## 重点知识
+**本层主问题：** 物理链路与拓扑结构决定了软件能否枚举到设备；LTSSM 未进 L0 时，配置读必然得到 0xFFFF。
 
-### 1. PCI 与 PCIe：总线演进与软件可见差异
+### 并行 PCI 与串行 PCIe 的本质差异
 
 PCI（Conventional PCI）诞生于 1990 年代：32/64 位并行总线，多设备共享同一组 AD 线，由仲裁器决定谁占用总线。时钟 33 MHz（后 66 MHz PCI-X），带宽随设备数争用而下降。信号：`FRAME#`、`IRDY#`、`DEVSEL#`、INTx# 边带中断线。配置访问通过专用 Cfg 周期在总线上广播 BDF 与偏移。
 
@@ -260,13 +222,11 @@ Linux 不区分 PCI 驱动与 PCIe 驱动——`struct pci_driver` 统一；差�
 
 PCI 时代的 IO 空间在 x86 上独立编址（`inb`/`outb`）；ARM64 通常 `CONFIG_PCI` 下仍保留 API 但 SoC 无 IO 译码，设备 BAR 几乎全是 MMIO。PCIe 的 Memory TLP 是访问 BAR 与主机内存（DMA）的主要载体。
 
-带宽粗算：PCIe Gen3 x16 理论约 16 GB/s（128 GT/s × 8b/10b 编码 × 双向，单向约 16 GB/s 量级）；Gen4 翻倍。实际受 MPS、MRRS、TLP 开销与设备实现限制。驱动层通常不直接调 Link 速度，但 `lspci -vvv` 的 `LnkSta` 可确认协商结果，bring-up 阶段若宽度/速度低于 `LnkCap` 需查 SI、BIOS/固件或 Lane 反接。
+带宽粗算：PCIe Gen3 x16 理论约 16 GB/s 单向（128 GT/s × 8b/10b 编码）；Gen4 翻倍。实际受 MPS、MRRS、TLP 开销与设备实现限制。驱动层通常不直接调 Link 速度，但 `lspci -vvv` 的 `LnkSta` 可确认协商结果，bring-up 阶段若宽度/速度低于 `LnkCap` 需查 SI、BIOS/固件或 Lane 反接。
 
-**PCI 配置空间 endian：** 所有多字节 config 寄存器 little-endian；`pci_read_config_dword` 返回 CPU 字节序的 u32。MMIO BAR 内设备寄存器 endian 由设备定义，多数小端，网络芯片可能要求 `readl`/`ioread32be`。
+配置空间 endian：所有多字节 config 寄存器 little-endian；`pci_read_config_dword` 返回 CPU 字节序的 u32。MMIO BAR 内设备寄存器 endian 由设备定义，多数小端，网络芯片可能要求 `readl`/`ioread32be`。
 
-**PCI-X 与 PCIe 共存：** 老服务器可见 PCI-X 并行槽；Linux 枚举路径相同。PCIe 插槽物理上不可插 PCI 并行卡。Mini PCIe / M.2 是机械规范，电气仍是 PCIe x1/x2/x4。
-
-### 2. PCIe 拓扑：Root Complex、Switch、Endpoint
+### RC、Switch、Endpoint 与 BDF 拓扑
 
 Root Complex（RC）是 CPU/SoC 侧 PCIe 根：发起配置与 Memory/IO 事务，连接内存域。ARM64/x86 上 RC 通常集成在 SoC/芯片组；Linux 由 host 驱动（`pci-host-generic`、`pcie-designware-host`）注册 `struct pci_host_bridge`，提供 config 读写 ops。
 
@@ -280,7 +240,9 @@ RC Integrated Endpoint 是集成在 RC 内部的 EP（无外部 Link），仍有
 
 Peer-to-Peer（P2P）指两 EP 不经 CPU 内存直接 TLP 互访；需 Switch/ACS 支持。虚拟化直通与 GPU 直读 NVMe 场景会涉及 ACS 与 IOMMU 策略，日常嵌入式 RC+单 EP 较少遇到。
 
-### 3. Lane、Link、LTSSM 与链路训练
+**devfn 编码：** `devfn = (slot << 3) | function`，宏 `PCI_DEVFN(5, 0)` = 0x28。Linux 打印 `0000:01:00.0` 中 01 是 bus，00 是 slot（device），0 是 function。
+
+### Lane、Link 与 LTSSM
 
 Lane = 一对 TX/RX 差分对。Link Width = 活跃 Lane 数（x1/x4/...），在 Link Status（PCIe Capability + 0x12）可读：`Negotiated Link Width`、`Current Link Speed`（2.5/5/8/16 GT/s 对应 Gen1–4）。
 
@@ -301,7 +263,11 @@ Ordered Sets（TS1/TS2/EIEOS 等）是物理层训练符号序列，用于建立
 
 Link Capabilities（偏移 +0x0C）Advertised 最大宽度/速度；Link Status（+0x12）为协商结果。若 `LnkSta` 宽度 x1 而硬件走线 x4，查 BIOS/固件 Lane reversal 或 PHY 配置。Gen 降级（如只到 Gen1）常见于 SI 问题或对端只支持低 Gen。
 
-### 4. TLP 事务层：类型、Header 字段、Posted 与 Non-Posted
+## 第二层：协议与报文——软件背后真正在飞的是什么
+
+**本层主问题：** 驱动 API 的每一次 MMIO 读写或 config 访问，在链路上都对应特定类型的 TLP；理解 Posted/Non-Posted 才能解释超时、UR 与全 0xff。
+
+### 三层协议栈与 TLP 类型
 
 PCIe 分层（自顶向下）：Transaction Layer（TLP）、Data Link Layer（DLLP、ACK/NAK、LCRC）、Physical Layer（Ordered Sets、8b/10b 或 128b/130b 编码）。
 
@@ -319,21 +285,6 @@ TLP 类型驱动/内核最常接触：
 
 Posted 写（Mem Write、部分 Msg）发射后不等待 Completion，适合高吞吐 DMA 写。Non-Posted 读/写（Mem Read、Cfg Read）必须等 Completion 返回，RC 用 Tag 匹配未完成事务；Tag 槽耗尽会反压新请求。
 
-TLP Header 常见 3 DW（12 字节）或 4 DW（64 位地址）：
-
-| 字段 | 位宽 | 作用 |
-|------|------|------|
-| Fmt/Type | — | 格式与 TLP 类型 |
-| Length | 10 bit | 载荷 DW 数 |
-| Requester ID | 16 bit | `{Bus[7:0], Dev[4:0], Fn[2:0]}` 发起者 BDF |
-| Tag | 8 bit（可扩展） | 匹配 Outstanding Non-Posted |
-| Address | 32/64 bit | Mem/IO 目标；Cfg 含 Register Number |
-| Traffic Class / Attr | — | QoS、Relaxed Ordering、No Snoop |
-
-理解 ReqID：CPU 通过 RC 读 EP BAR 时，Mem Read TLP 的 ReqID 通常是 RC 的 BDF；EP 回 Completion 带同一 Tag。DMA 时 EP 发起 Mem Write/Read，ReqID 是 EP 的 BDF，主机 IOMMU/ACS 会据此做隔离与地址翻译。
-
-Completion Status 常见值：Successful、UR（Unsupported Request，如 BAR 未分配时读设备）、CA（Completer Abort）。驱动 `readl` 全 0xffffffff 有时是 UR 的 Completion 数据，需结合 BAR 是否已 assign、`pci_enable_device` 是否打开 MEM decode。
-
 Cfg TLP 路由：Type0 目标在当前 bus；Type1 目标在 secondary bus 之后，Bridge 根据 Bus Number 字段转发并改写 Bus 号。这与 Header Type1 的 Primary/Secondary/Subordinate 寄存器直接对应。
 
 Linux API 与 TLP 映射：`readl`/`writel` on `pci_iomap` → RC 发 Memory TLP 到 EP BAR 物理地址；`pci_read_config_dword` → Configuration Read TLP；`pci_alloc_irq_vectors` + MSI → 配置 MSI Capability，设备发 Message TLP；`dma_map_single` → IOMMU 建立映射，EP DMA 发 Memory TLP 到主机 IOVA。
@@ -350,11 +301,26 @@ Linux API 与 TLP 映射：`readl`/`writel` on `pci_iomap` → RC 发 Memory TLP
 
 Bridge 收到 Type1 Cfg TLP 时，若 Bus Number 在 Secondary–Subordinate 范围内，转发到下游并更新 TLP 中的 Bus 字段；否则丢弃或 UR。
 
-**Outstanding 事务与 Tag：** RC 通常支持数十到数百 Outstanding Non-Posted 事务。Tag 8 bit 循环使用；Completion 乱序返回时靠 Tag 匹配。驱动连续 `readl` 不会暴露 Tag——硬件自动管理；性能测试大量并发 Mem Read 时 Tag 耗尽会 stall。
+### TLP Header 与 Posted/Non-Posted
 
-**AtomicOp 与 TLP 前缀（了解）：** PCIe Gen3+ 支持 AtomicOp TLP；CXL 内存语义复用 PCIe 物理层。普通 EP 驱动不涉及。
+TLP Header 常见 3 DW（12 字节）或 4 DW（64 位地址）：
 
-### 5. DLLP 与 Data Link 层 Flow Control
+| 字段 | 位宽 | 作用 |
+|------|------|------|
+| Fmt/Type | — | 格式与 TLP 类型 |
+| Length | 10 bit | 载荷 DW 数 |
+| Requester ID | 16 bit | `{Bus[7:0], Dev[4:0], Fn[2:0]}` 发起者 BDF |
+| Tag | 8 bit（可扩展） | 匹配 Outstanding Non-Posted |
+| Address | 32/64 bit | Mem/IO 目标；Cfg 含 Register Number |
+| Traffic Class / Attr | — | QoS、Relaxed Ordering、No Snoop |
+
+理解 ReqID：CPU 通过 RC 读 EP BAR 时，Mem Read TLP 的 ReqID 通常是 RC 的 BDF；EP 回 Completion 带同一 Tag。DMA 时 EP 发起 Mem Write/Read，ReqID 是 EP 的 BDF，主机 IOMMU/ACS 会据此做隔离与地址翻译。
+
+Completion Status 常见值：Successful、UR（Unsupported Request，如 BAR 未分配时读设备）、CA（Completer Abort）。驱动 `readl` 全 0xffffffff 有时是 UR 的 Completion 数据，需结合 BAR 是否已 assign、`pci_enable_device` 是否打开 MEM decode。
+
+RC 通常支持数十到数百 Outstanding Non-Posted 事务。Tag 8 bit 循环使用；Completion 乱序返回时靠 Tag 匹配。驱动连续 `readl` 不会暴露 Tag——硬件自动管理；性能测试大量并发 Mem Read 时 Tag 耗尽会 stall。
+
+### DLLP 与 Flow Control（够用的程度）
 
 Data Link Layer Packet（DLLP）在 Link 伙伴之间传递，驱动不直接构造。主要类型：
 
@@ -366,9 +332,13 @@ Data Link Layer Packet（DLLP）在 Link 伙伴之间传递，驱动不直接构
 
 Credits 按 Virtual Channel 与类型（Posted/Non-Posted/Completion）分池；发送方消耗 Credit，接收方通过 UpdateFC 返还。Credit 耗尽时 Transaction Layer 不能发新 TLP，表现为吞吐下降或 latency 升高。链路 CRC 错误进入 Recovery，LTSSM 重训练，期间 TLP 暂停。
 
-LCRC 保护 TLP 在 Link 上传输；AER 可记录 Bad TLP、Bad DLLP 等错误（见后文 AER 节）。日常驱动开发只需知道：链路不稳定时先查 `LnkSta`、AER 计数与物理层，而非改驱动 MMIO 顺序。
+LCRC 保护 TLP 在 Link 上传输；AER 可记录 Bad TLP、Bad DLLP 等错误。日常驱动开发只需知道：链路不稳定时先查 `LnkSta`、AER 计数与物理层，而非改驱动 MMIO 顺序。
 
-### 6. 配置空间：Type0/Type1、Command 与 Status
+## 第三层：配置空间与 BAR——驱动看得见的设备资源
+
+**本层主问题：** 配置空间是软件识别设备、分配 BAR、使能功能的唯一标准接口；BAR sizing 与 ECAM 访问路径决定 `lspci` 与 `pci_iomap` 能否正常工作。
+
+### Type0/Type1 与 Command/Status
 
 每个 Function 有配置空间。PCIe 设备通常 4096 B（`PCI_CFG_SPACE_EXP_SIZE`），前 256 B 与 PCI 兼容；256–4095 为 Extended Capability 链表。
 
@@ -400,8 +370,6 @@ LCRC 保护 TLP 在 Link 上传输；AER 可记录 Bad TLP、Bad DLLP 等错误�
 
 `pci_enable_device()` 会置 IO/MEM 位并分配 INTx/MSI 资源；`pci_set_master()` 置 Bus Master。Status 中 `PCI_STATUS_CAP_LIST` 表示 0x34 指针有效；Master Abort、Target Abort、Parity 在 `lspci` 可见。
 
-Type0 vs Type1 Configuration TLP：CPU 发 Configuration Read 时，Bridge 比较 TLP 中的 Bus Number 与 Primary/Secondary/Subordinate，决定转发或本地响应。枚举前 Subordinate 未填会导致深层设备不可达。
-
 **Bridge 窗口寄存器（Header Type 1，偏移 0x18–0x30）：**
 
 | 偏移 | 寄存器 | 作用 |
@@ -414,9 +382,9 @@ Type0 vs Type1 Configuration TLP：CPU 发 Configuration Read 时，Bridge 比�
 
 Bridge 只在 CPU 地址落在其 MEM/IO 窗口内时转发 Memory/IO TLP 到下游；窗口由 `pci_bus_assign_resources()` 根据下游 BAR 需求累加计算。Subordinate Bus Number 必须 ≥ Secondary 下所有后代 bus，否则深层 Cfg TLP 无法路由。
 
-**devfn 编码：** `devfn = (slot << 3) | function`，宏 `PCI_DEVFN(5, 0)` = 0x28。Linux 打印 `0000:01:00.0` 中 01 是 bus，00 是 slot（device），0 是 function。多功能设备 `lspci` 显示 `01:00.0`、`01:00.1` 等同 slot 不同 function。
+Type0 vs Type1 Configuration TLP：CPU 发 Configuration Read 时，Bridge 比较 TLP 中的 Bus Number 与 Primary/Secondary/Subordinate，决定转发或本地响应。枚举前 Subordinate 未填会导致深层设备不可达。
 
-### 7. Capability 链表与 PCIe Capability
+### Capability 链表与 ECAM 访问
 
 自偏移 0x34 起为标准 Capability 链表：每项 `[Cap ID, Next Pointer]` + 私有寄存器。遍历 API：`pci_find_capability(dev, PCI_CAP_ID_*)`。
 
@@ -431,19 +399,13 @@ PCIe Capability（`PCI_CAP_ID_EXP`）内 **Device/Port Type** 区分 EP、Legacy
 
 内核在枚举时记录 `dev->pcie_cap`、`dev->msi_cap`、`dev->msix_cap` 偏移，驱动通过 `pcie_capability_read_word()` 等访问，避免硬编码偏移。
 
-PM Capability：`pci_enable_device()` 将设备置于 D0；`pci_disable_device()` 配合 runtime PM 可进 D3hot。D3cold 需平台唤醒源，驱动 `suspend`/`resume` 与 `pci_save_state`/`pci_restore_state` 配合。
-
-### 8. 4 KB 扩展配置空间与 ECAM
-
-偏移 ≥ 0x100 为 **Extended Capability**，格式 `[Cap ID 16b][Version 4b][Next 12b]`，无 256 B 限制的单链表可多个并行结构（按 spec 规则遍历）。常见：
+偏移 ≥ 0x100 为 **Extended Capability**，格式 `[Cap ID 16b][Version 4b][Next 12b]`。常见：
 
 | Ext Cap ID | 名称 | 用途 |
 |------------|------|------|
 | 0x0001 | AER | 高级错误报告 |
 | 0x0003 | SR-IOV | 虚拟功能 |
 | 0x000D | ACS | 访问控制/P2P |
-
-`lspci -xxx` 可 dump 全 4 KB；内核 `pci_read_config_dword(dev, 0x100+)` 需 `dev->cfg_size` 支持扩展空间。
 
 **ECAM**（Enhanced Configuration Access Mechanism）把 `{Bus, Device, Function, Offset}` 映射到连续 MMIO：
 
@@ -458,7 +420,7 @@ x86 早期还有 I/O 端口 **0xCF8/0xCFC**（CONFIG_ADDRESS/DATA）访问配置
 
 用户态 `lspci` 读 `/sys/bus/pci/devices/BBBB:DD.F/config`（需 root 或 CAP），与内核同路径。写 config 错误可能破坏 Command/BAR，慎用 `setpci`。
 
-### 9. BAR：位域、Size 探测、MMIO 与 Linux resource
+### BAR 位域、Size 探测与 Linux resource
 
 BAR 描述设备需要的地址空间窗口。枚举前 BAR 初值由硬件/固件决定；OS 必须做 sizing 再分配物理地址写回。
 
@@ -481,6 +443,18 @@ BAR 描述设备需要的地址空间窗口。枚举前 BAR 初值由硬件/固�
 
 64 bit BAR：低 DWORD 写 1 后读 size 低位，高 DWORD 写 1 读 size 高位；若高 DWORD 非 0 表示需要 64 bit 窗口。两个连续 BAR 槽中第二个被占用，驱动不要假设 BAR2 一定存在。
 
+**64 bit BAR sizing 示例：**
+
+假设 BAR0+BAR1 组成 64 bit non-prefetchable MMIO，size 256 MB：
+
+```
+1. 读 BAR0=0x0000000c（bit2:1=10 表示 64 bit mem）
+2. 写 BAR0=0xffffffff → 读回 0xffff000c → 低 size 位 0x100000
+3. 写 BAR1=0xffffffff → 读回 0x0000000f → 高 size 位
+4. 合成 size = 0x10000000（256 MB）
+5. assign 后写 BAR0=低32位地址|0xc，BAR1=高32位地址
+```
+
 **MMIO vs IO：** MMIO 用 `readl`/`writel` on mapped VA；IO Port 用 `inb`/`outb`（x86）。Linux 优先 `pci_iomap`/`devm_pci_iomap`；`pci_resource_flags()` 含 `IORESOURCE_MEM` 或 `IORESOURCE_IO`。
 
 **Linux resource 索引：**
@@ -493,25 +467,17 @@ BAR 描述设备需要的地址空间窗口。枚举前 BAR 初值由硬件/固�
 
 API：`pci_resource_start/end/len(pdev, bar)`；`pci_iomap(pdev, bar, maxlen)`。勿在 BAR 未分配、`pci_enable_device` 未开 MEM 位时随意读设备寄存器——Completion UR 或全 1。
 
-Expansion ROM（偏移 0x30）：bit0 使能 ROM decode；`pci_map_rom()` 读取 Option ROM，多数现代驱动忽略。Bridge Prefetch window 必须覆盖所有下游 prefetchable BAR，否则 64 bit prefetch 分配失败。
-
-**64 bit BAR sizing  walkthrough 示例：**
-
-假设 BAR0+BAR1 组成 64 bit non-prefetchable MMIO，size 256 MB：
-
-```
-1. 读 BAR0=0x0000000c（bit2:1=10 表示 64 bit mem）
-2. 写 BAR0=0xffffffff → 读回 0xffff000c → 低 size 位 0x100000
-3. 写 BAR1=0xffffffff → 读回 0x0000000f → 高 size 位
-4. 合成 size = 0x10000000（256 MB）
-5. assign 后写 BAR0=低32位地址|0xc，BAR1=高32位地址
-```
-
 驱动 `pci_iomap(pdev, 0, 0)` 只映射 BAR0 索引，内核合并 64 bit 资源到 `resource[0]`。`pci_select_bars(pdev, IORESOURCE_MEM)` 返回应映射的 BAR 位图。
 
-**IO BAR 在 ARM64：** 多数平台 `IORESOURCE_IO` BAR 被忽略或映射到 MMIO 窗口；`pci_iomap` 对 IO BAR 可能失败。新设备应使用 MEM BAR。
+Expansion ROM（偏移 0x30）：bit0 使能 ROM decode；`pci_map_rom()` 读取 Option ROM，多数现代驱动忽略。Bridge Prefetch window 必须覆盖所有下游 prefetchable BAR，否则 64 bit prefetch 分配失败。
 
-### 10. 中断：INTx、MSI、MSI-X 与 pci_alloc_irq_vectors
+IO BAR 在 ARM64：多数平台 `IORESOURCE_IO` BAR 被忽略或映射到 MMIO 窗口；`pci_iomap` 对 IO BAR 可能失败。新设备应使用 MEM BAR。
+
+## 第四层：中断与 DMA——设备如何打断 CPU、如何搬数据
+
+**本层主问题：** 中断模式选择与 DMA 地址翻译是 probe 后半段的核心；Bus Master 未开或 IOMMU 未配会导致「设备可见但无中断/数据错」。
+
+### INTx、MSI、MSI-X 与 pci_alloc_irq_vectors
 
 **INTx：** 四根虚拟线 INTA–INTD，`PCI_INTERRUPT_PIN`（1–4）与 `PCI_INTERRUPT_LINE`。PCIe 用 INTx Message TLP 模拟边带线。Linux 传统 `pdev->irq` + `request_irq`；`PCI_COMMAND_INTX_DISABLE` 可屏蔽。ACPI _PRT 或 DT `interrupt-map` 描述 swizzle 与 GIC 中断号。
 
@@ -533,8 +499,6 @@ void pci_free_irq_vectors(struct pci_dev *dev);
 
 `pci_intx()`/`pci_msi_enabled()` 等辅助判断当前模式。MSI 失败常见原因：ITS 未初始化、SMMU 隔离 SID 错误、BIOS 关闭 MSI。多队列设备若分配向量少于队列数，驱动应降级或报错，不能假设 `max_vecs` 一定全部分配。
 
-remove 路径：`free_irq` → `pci_free_irq_vectors` → `pci_release_regions` → `pci_disable_device`；`pci_clear_master()` 防止 remove 后 DMA 继续。
-
 **MSI Capability 寄存器（偏移因设备而异，通常 +0x04 起）：**
 
 | 字段 | 作用 |
@@ -546,9 +510,45 @@ remove 路径：`free_irq` → `pci_free_irq_vectors` → `pci_release_regions` 
 
 MSI-X 表在 BAR 映射的 MMIO 中（Table Offset/Table BIR 在 MSIX Capability）；驱动映射 BAR 后写表项 Address/Data，`pci_enable_msix_range()` 使能。`pci_alloc_irq_vectors` 优先 MSIX，失败回退 MSI，再回退 INTx（若 flags 允许）。
 
-**INTx 消息化：** PCIe EP 无物理 INTx 线，断言/取消通过 Message TLP（Assert_INTA/Deassert_INTA 等）送达 RC，RC 转平台中断控制器。DT `interrupt-map` 四元组 `<addr addr addr irq>` 将 INTx 映射到 GIC SPI。
+INTx 消息化：PCIe EP 无物理 INTx 线，断言/取消通过 Message TLP（Assert_INTA/Deassert_INTA 等）送达 RC，RC 转平台中断控制器。DT `interrupt-map` 四元组 `<addr addr addr irq>` 将 INTx 映射到 GIC SPI。
 
-### 11. Linux 枚举、probe 顺序与 pci_register_driver
+remove 路径：`free_irq` → `pci_free_irq_vectors` → `pci_release_regions` → `pci_disable_device`；`pci_clear_master()` 防止 remove 后 DMA 继续。
+
+### Bus Master、DMA 掩码与 IOMMU 边界
+
+设备 DMA 前必须：`pci_set_master()` 打开 Command 的 Bus Master 位；`dma_set_mask_and_coherent()` 声明设备可访问的物理/IOVA 地址宽度；分配或映射 DMA 缓冲区。
+
+```c
+if (dma_set_mask_and_coherent(&pdev->dev, DMA_BIT_MASK(64)) &&
+    dma_set_mask_and_coherent(&pdev->dev, DMA_BIT_MASK(32)))
+    return -ENODEV;
+
+/* 一致性内存（小缓冲、描述符环） */
+buf = dma_alloc_coherent(&pdev->dev, size, &dma_handle, GFP_KERNEL);
+
+/* 流式映射（skb 等已存在页面） */
+dma_addr_t map = dma_map_single(&pdev->dev, ptr, len, DMA_TO_DEVICE);
+/* ... 设备完成 DMA 后 */
+dma_unmap_single(&pdev->dev, map, len, DMA_TO_DEVICE);
+```
+
+IOMMU（Intel VT-d、ARM SMMU）下 `dma_handle`/`map` 是 **IOVA**，非物理地址。DT 中 `iommus = <&smmu sid>` 绑定设备 Stream ID；无 IOMMU 时恶意 EP 可 DMA 任意物理内存，生产环境必须开启。
+
+**dma-ranges**（DT）描述 EP 可见的主机内存窗口；与 RC `ranges`（CPU→PCI outbound）方向相反。32 bit DMA 设备在 >4G 内存机器上可能走 **swiotlb** bounce buffer，性能下降。
+
+RC outbound：`ranges` 定义 CPU 物理地址到 PCI 总线地址映射；inbound（DMA）：设备发起的 TLP 地址由 IOMMU 翻译到物理页。SoC 文档中的 AXI 地址与 PCI 地址需与 DT 一致，否则 DMA 成功但数据写到错误位置。具体寄存器与 SID 分配以平台手册为准。
+
+remove 前 `pci_clear_master()` 停止设备发起新 DMA；`dma_free_coherent`/`dma_unmap_*` 释放映射。
+
+Cache 一致性与 ARM SoC：设备 DMA 到 `dma_alloc_coherent` 缓冲区 CPU 可直接读；流式映射的 skb 缓冲区需 `dma_sync_single_for_cpu()` 在 CPU 访问前同步。部分 SoC 非一致 DMA 需平台特定同步，DT 中 `dma-coherent` 属性声明设备与 CPU 共享一致内存。
+
+`pci_enable_device` 内部（`drivers/pci/pci.c`）：递增 `enable_cnt`；首次 enable 时分配 IRQ 资源、置 Command SERR/MEM/IO 位、唤醒 PM D0。与 `pci_disable_device` refcount 配对，重复 enable 安全。
+
+## 第五层：Linux 驱动实现——从 id_table 到 probe 的固定顺序
+
+**本层主问题：** 内核 PCI 核心已完成枚举与 BAR 分配；驱动只需按固定顺序 enable 资源、映射 MMIO、配中断，并通过 `id_table` 正确匹配设备。
+
+### pci_register_driver 与匹配绑定
 
 **枚举流程**（`drivers/pci/probe.c`）：
 
@@ -584,15 +584,13 @@ module_pci_driver(my_driver);  /* 展开 pci_register_driver / unregister */
 
 `pci_match_device()`（`search.c`）按 vendor/device/subvendor/subdevice/class 匹配；表末必须空 sentinel；`MODULE_DEVICE_TABLE(pci, table)` 导出 modinfo 供 udev 自动加载。
 
-**probe 契约：**
+**probe 返回值：**
 
 | 返回值 | 含义 |
 |--------|------|
 | 0 | 绑定成功 |
 | 负 errno | 失败，不绑定 |
 | -EPROBE_DEFER | 依赖未就绪，稍后重试 |
-
-**推荐顺序：** `pci_enable_device` → `pci_request_regions` → `pci_set_master` → `dma_set_mask_and_coherent` → `pci_iomap` → `pci_alloc_irq_vectors` → `request_irq`。remove 逆序。推荐使用 `pcim_*`/`devm_*` managed API 避免泄漏。
 
 `pci_device_probe()` 在 `pci-driver.c` 中调用 `local_pci_probe()`，最终执行 `drv->probe(pci_dev, id)`。同一设备同时只能绑定一个 `pci_driver`；`lspci -k` 显示 "Kernel driver in use"。
 
@@ -614,41 +612,38 @@ for devfn in 0..255:
 assign_resources on this bus subtree
 ```
 
-Bridge 的 Secondary Bus Reset（Bridge Control bit6）用于复位下游设备；FLR 只复位单个 function。热插拔场景 `pci_hp` 子系统在枚举后通知用户态。
+Bridge 的 Secondary Bus Reset（Bridge Control bit6）用于复位下游设备；FLR 只复位单个 function。`-EPROBE_DEFER` 典型链：EP 驱动依赖 `regulator_get()` → regulator 驱动未 probe → PCI 核心稍后重试。`dmesg` 搜 `deferred probe pending` 可见依赖图。
 
-`-EPROBE_DEFER` 典型链：EP 驱动依赖 `regulator_get()` → regulator 驱动未 probe → PCI 核心稍后重试。`dmesg` 搜 `deferred probe pending` 可见依赖图。
+### probe 推荐顺序与 sysfs/lspci
 
-### 12. DMA、IOMMU 与 Bus Master
+**推荐顺序：** `pci_enable_device` → `pci_request_regions` → `pci_set_master` → `dma_set_mask_and_coherent` → `pci_iomap` → `pci_alloc_irq_vectors` → `request_irq`。remove 逆序。推荐使用 `pcim_*`/`devm_*` managed API 避免泄漏。
 
-设备 DMA 前必须：`pci_set_master()` 打开 Command 的 Bus Master 位；`dma_set_mask_and_coherent()` 声明设备可访问的物理/IOVA 地址宽度；分配或映射 DMA 缓冲区。
+最小 PCI 驱动骨架（资源顺序与内核一致）：
 
 ```c
-if (dma_set_mask_and_coherent(&pdev->dev, DMA_BIT_MASK(64)) &&
-    dma_set_mask_and_coherent(&pdev->dev, DMA_BIT_MASK(32)))
-    return -ENODEV;
+static const struct pci_device_id ids[] = {
+    { PCI_DEVICE(0x8086, 0x1234) },
+    { /* sentinel */ }
+};
+MODULE_DEVICE_TABLE(pci, ids);
 
-/* 一致性内存（小缓冲、描述符环） */
-buf = dma_alloc_coherent(&pdev->dev, size, &dma_handle, GFP_KERNEL);
-
-/* 流式映射（skb 等已存在页面） */
-dma_addr_t map = dma_map_single(&pdev->dev, ptr, len, DMA_TO_DEVICE);
-/* ... 设备完成 DMA 后 */
-dma_unmap_single(&pdev->dev, map, len, DMA_TO_DEVICE);
+static int my_probe(struct pci_dev *pdev, const struct pci_device_id *id)
+{
+    int err = pci_enable_device(pdev);
+    if (err) return err;
+    err = pci_request_regions(pdev, "mydrv");
+    if (err) goto err_disable;
+    pci_set_master(pdev);
+    void __iomem *mmio = pci_iomap(pdev, 0, pci_resource_len(pdev, 0));
+    if (!mmio) { err = -ENOMEM; goto err_release; }
+    return 0;
+err_release:
+    pci_release_regions(pdev);
+err_disable:
+    pci_disable_device(pdev);
+    return err;
+}
 ```
-
-IOMMU（Intel VT-d、ARM SMMU）下 `dma_handle`/`map` 是 **IOVA**，非物理地址。DT 中 `iommus = <&smmu sid>` 绑定设备 Stream ID；无 IOMMU 时恶意 EP 可 DMA 任意物理内存，生产环境必须开启。
-
-**dma-ranges**（DT）描述 EP 可见的主机内存窗口；与 RC `ranges`（CPU→PCI outbound）方向相反。32 bit DMA 设备在 >4G 内存机器上可能走 **swiotlb** bounce buffer，性能下降。
-
-RC outbound：`ranges` 定义 CPU 物理地址到 PCI 总线地址映射；inbound（DMA）：设备发起的 TLP 地址由 IOMMU 翻译到物理页。SoC 文档中的 AXI 地址与 PCI 地址需与 DT 一致，否则 DMA 成功但数据写到错误位置。
-
-remove 前 `pci_clear_master()` 停止设备发起新 DMA；`dma_free_coherent`/`dma_unmap_*` 释放映射。
-
-**Cache 一致性与 ARM SoC：** 设备 DMA 到 `dma_alloc_coherent` 缓冲区 CPU 可直接读；流式映射的 skb 缓冲区需 `dma_sync_single_for_cpu()` 在 CPU 访问前同步。部分 SoC 非一致 DMA 需 `arch_sync_dma_for_device()`，DT 中 `dma-coherent` 属性声明设备与 CPU 共享一致内存。
-
-**pci_enable_device 内部**（`drivers/pci/pci.c`）：递增 `enable_cnt`；首次 enable 时分配 IRQ 资源、置 Command SERR/MEM/IO 位、唤醒 PM D0。与 `pci_disable_device` refcount 配对，重复 enable 安全。
-
-### 13. sysfs 与 lspci 实战命令
 
 枚举完成后每个设备对应 sysfs 目录 `/sys/bus/pci/devices/0000:01:00.0/`（domain 省略时为 0000）：
 
@@ -705,26 +700,6 @@ dmesg | grep -i pci
 
 `config` 前 4 字节 Vendor ID 应非 `ffff`；`resource0` 的 start/end 非零表示 BAR 已分配。`modinfo nvme | grep alias` 可对照 PCI class 与 udev 规则。
 
-**调试内核 PCI 子系统：**
-
-```bash
-# 启动参数 verbose 枚举
-pci=debug
-
-# 动态打开 pci 核心 debug
-echo 'file drivers/pci/* +p' > /sys/kernel/debug/dynamic_debug/control
-
-# 查看设备 power 状态
-cat /sys/bus/pci/devices/0000:01:00.0/power/runtime_status
-
-# 强制绑定/解绑驱动（调试）
-echo 0000:01:00.0 > /sys/bus/pci/drivers/nvme/unbind
-echo 0000:01:00.0 > /sys/bus/pci/drivers/nvme/bind
-
-# 查看 AER 错误计数（若 CONFIG_PCIEAER）
-lspci -vvv -s 01:00.0 | grep -A5 "Advanced Error Reporting"
-```
-
 **Class Code 速查（lspci -nn 第三段）：**
 
 | Class | 含义 | 典型驱动 |
@@ -736,7 +711,23 @@ lspci -vvv -s 01:00.0 | grep -A5 "Advanced Error Reporting"
 
 Subsystem ID（偏移 0x2C）区分同芯片不同板卡；OEM 驱动有时匹配 `PCI_DEVICE_SUB` 而非仅 VID/DID。
 
-### 14. 嵌入式 SoC PCIe RC：时钟、复位、设备树与 DesignWare
+**Documentation/PCI/ 阅读顺序：**
+
+| 文档 | 内容 |
+|------|------|
+| `pci.txt` | 驱动模型总览 |
+| `msix-howto.txt` | MSI-X 编程 |
+| `pciebus-howto.txt` | PCIe 特性 |
+| `pci-iov-howto.txt` | SR-IOV |
+| `boot-interfaces.txt` | 内核启动参数 pci= |
+
+x86 平台 MCFG ACPI 表描述 ECAM 段；ARM64 常用 DT `reg` 或 ACPI IORT 关联 SMMU/ITS。多 segment 服务器 `lspci` 显示 `[domain:bus:dev.fn]`，对应 `pci_domain_nr()`。
+
+## 第六层：嵌入式 SoC RC 与分层排障
+
+**本层主问题：** SoC 集成 RC 时，硬件 bring-up（时钟/复位/PHY/DT）与软件枚举必须同步；分层排障避免在应用层反复改驱动。
+
+### SoC RC：时钟、PERST 与设备树
 
 SoC 集成 RC 时，软件栈：`platform driver`（如 `pcie-designware-host.c`）→ `pci_host_probe()` → 标准 PCI 核心枚举。硬件 bring-up 三要素：**REFCLK**、**PERST#**、**PHY**。
 
@@ -771,18 +762,6 @@ pcie0: pcie@40000000 {
 
 `drivers/pci/controller/dwc/pcie-designware-host.c` 解析 DT，`dw_pcie_host_init()` 配置 ATU、链 LTSSM、注册 host bridge。`pci-host-generic.c` 适用于简单 ECAM 内存映射无 DesignWare DBI 的平台。
 
-**常见坑：**
-
-| 现象 | 排查 |
-|------|------|
-| Vendor ID 0xFFFF | clk/reset/phy 未就绪；ECAM 基址错；PERST# 时序 |
-| 设备可见但 BAR 全 0 | assign 失败，查 dmesg `pci_assign_resource`；MMIO 窗口不够 |
-| MSI 分配失败 | ITS 未 probe；`msi-parent` 缺失；SMMU SID |
-| DMA 失败 / 数据错 | `dma-ranges`/`iommus`；`dma_set_mask` 32 bit；cache 一致性 |
-| 链路 x1 而非 x4 | DT `num-lanes`；PHY lane map；SI |
-
-固定焊接 EP 无 hotplug；首次枚举失败需重启或 `remove` host 驱动再 probe。FPGA 作 EP 时 Host 仍走标准枚举，FPGA 内需配置 Type0 config space IP。
-
 **DesignWare RC 初始化顺序**（`pcie-designware-host.c` 摘要）：
 
 ```
@@ -797,42 +776,23 @@ dw_pcie_host_init()
 
 `ranges` 三元组格式：`<flags pci_addr cpu_addr size>`。flags 高字节：`0x02000000` MEM、`0x01000000` IO、`0x42000000` prefetchable MEM。CPU 侧地址必须在 SoC memory map 内且不与其它外设重叠。
 
-**PHY 层常见问题：** AC coupling 电容缺失导致 Detect 失败；TX/RX 反接需 polarity inversion（训练阶段自动或 DT `lane-reversal`）；参考时钟来自 SOC 还是 slot 需与硬件 strap 一致。`num-lanes` 大于实际走线宽度时，未连接 Lane 需在 PHY 侧 term 或软件 mask。
+PHY 层常见问题：AC coupling 电容缺失导致 Detect 失败；TX/RX 反接需 polarity inversion（训练阶段自动或 DT `lane-reversal`）；参考时钟来自 SOC 还是 slot 需与硬件 strap 一致。`num-lanes` 大于实际走线宽度时，未连接 Lane 需在 PHY 侧 term 或软件 mask，具体以平台手册为准。
 
-**RC 模式 vs EP 模式：** 同一 DesignWare IP 可配 RC 或 EP；RC 用 `pcie-designware-host.c`，EP 用 `pcie-designware-ep.c`。SoC 作主机扫 FPGA EP 是常见验证路径；FPGA 侧需实现配置空间与 BAR 响应逻辑。
+RC 模式 vs EP 模式：同一 DesignWare IP 可配 RC 或 EP；RC 用 `pcie-designware-host.c`，EP 用 `pcie-designware-ep.c`。SoC 作主机扫 FPGA EP 是常见验证路径；FPGA 侧需实现配置空间与 BAR 响应逻辑。
 
-### 15. AER、MPS/MRRS、电源管理、SR-IOV 与 FLR
+**常见坑：**
 
-**AER**（Advanced Error Reporting，Ext Cap 0x0001）：记录 Uncorrectable/Correctable 错误（Bad TLP、Completer Abort、ECRC 等）。内核 `CONFIG_PCIEAER` 启用后可通过 sysfs 与 `lspci -vvv` 查看。MPS/MRRS 不匹配、非法地址访问会触发 AER 计数增加。排障链路质量与 BAR 配置时先看 AER 日志。
+| 现象 | 排查 |
+|------|------|
+| Vendor ID 0xFFFF | clk/reset/phy 未就绪；ECAM 基址错；PERST# 时序 |
+| 设备可见但 BAR 全 0 | assign 失败，查 dmesg `pci_assign_resource`；MMIO 窗口不够 |
+| MSI 分配失败 | ITS 未 probe；`msi-parent` 缺失；SMMU SID |
+| DMA 失败 / 数据错 | `dma-ranges`/`iommus`；`dma_set_mask` 32 bit；cache 一致性 |
+| 链路 x1 而非 x4 | DT `num-lanes`；PHY lane map；SI |
 
-**MPS**（Max Payload Size）与 **MRRS**（Max Read Request Size）：在 PCIe Device Control 与 Link Control 中配置。MPS 决定单个 TLP 最大载荷（128–4096 B）；MRRS 决定 Mem Read 请求大小。内核 `pcie_set_readrq(dev, size)` 调整 MRRS；部分设备 quirk 限制 MPS。过大 MRRS 在错误 MPS 对端上可能触发 UR。
+固定焊接 EP 无 hotplug；首次枚举失败需重启或 `remove` host 驱动再 probe。FPGA 作 EP 时 Host 仍走标准枚举，FPGA 内需配置 Type0 config space IP。
 
-**电源管理：** PM Capability 支持 D0（全功能）、D3hot（低功耗，配置空间可访问）、D3cold（主电源关）。驱动 `suspend`/`resume` 配合 `pci_save_state`/`pci_restore_state`；runtime PM 用 `pci_prepare_to_sleep`/`pci_wake_from_sleep`。L1 ASPM 降低链路功耗，latency 敏感设备可能禁用 ASPM（`pcie_aspm` 内核参数）。
-
-**SR-IOV**（Ext Cap 0x0003）：Physical Function（PF）暴露多个 Virtual Function（VF），每个 VF 独立 BDF 与 BAR。`pci_enable_sriov(pf, num_vfs)` 创建 VF；VF 驱动仍用 `pci_register_driver` 匹配 VF 的 Vendor/Device。虚拟化场景常见；嵌入式单 EP 可忽略。
-
-**FLR**（Function Level Reset）：PCIe Device Control 触发，复位 function 内部状态。FLR 后需重新 `pci_enable_device`、映射 BAR、配置 MSI。sysfs `reset` 写 1 触发；`NoSoftRst` 位表示 FLR 后无需等 firmware reload。
-
-**Resizable BAR**（部分 GPU）：固件与内核 `pci_resize_resource()` 支持动态扩大 MMIO 窗口。
-
-**AER 寄存器结构（Ext Cap +0x04 起）：**
-
-| 寄存器 | 作用 |
-|--------|------|
-| Uncorrectable Error Status/Mask | Bad TLP、Poisoned TLP、Completer Abort 等 |
-| Correctable Error Status/Mask | Receiver Error、Bad DLLP、Replay Timer |
-| Header Log | 出错 TLP Header 快照，便于软件解析 ReqID/Tag |
-| Root Error Command/Status | RC 侧汇总与中断使能 |
-
-UR（Unsupported Request）常见于访问未实现寄存器或 BAR 未 enable；CA（Completer Abort）常见于设备内部错误。`lspci -vvv` AER 段 Non-Fatal/Fatal 计数非零时应查链路 SI 与驱动访问地址合法性。
-
-**MPS/MRRS 协商：** 链路两端取较小 MPS；Mem Read TLP 长度受 MRRS 限制。NVMe/网卡驱动大包 DMA 前可 `pcie_set_readrq(dev, 4096)`；若对端 MPS=128，过大 MRRS 不会提升吞吐反而可能 UR。`drivers/pci/quirks.c` 中 numerous 设备有 MPS 强制 quirk。
-
-**SR-IOV 软件模型：** PF 驱动加载后 `pci_sriov_set_totalvfs()`/`pci_enable_sriov()`；每个 VF 出现在 sysfs 独立 BDF；VF 可绑定 vfio-pci 直通虚拟机。PF reset 会销毁 VF，虚拟机需协调。
-
-**ACS（Access Control Services）：** 控制 P2P 是否允许、是否强制经 RC 转发。虚拟化直通多 VF/PF 同域时，ACS 防止 VF 互相 DMA。
-
-### 16. 典型故障分层排障与完整 probe 示例
+### 分层排障与完整 probe 示例
 
 按层次定位问题，避免在应用层反复改驱动：
 
@@ -845,6 +805,16 @@ UR（Unsupported Request）常见于访问未实现寄存器或 BAR 未 enable�
 | MMIO | readl 全 ff | BAR 是否 assign；Command MEM 位；UR Completion |
 | IRQ | 无中断 | `pci_alloc_irq_vectors` 返回值；ITS/GIC |
 | DMA | 超时/数据错 | IOMMU/SMMU；mask；dma-ranges；swiotlb |
+
+**分层排障实例：**
+
+| 案例 | 现象 | 根因 | 验证 |
+|------|------|------|------|
+| SoC RC 首启 | 全树 FFFF | PERST# 过早释放 | 延时 100ms 后枚举 |
+| NVMe 可见 | BAR0=0 | assign 失败 | dmesg ENOMEM；扩大 MMIO |
+| 网卡 probe OK | 无 RX 中断 | MSI 未配 | alloc_irq_vectors=-1 |
+| FPGA EP | DMA 花数据 | 无 SMMU map | dma_map 返回值 |
+| 读寄存器 | 全 0xff | MEM 未 enable | setpci COMMAND |
 
 **完整 probe 示例（MSI + DMA，managed API）：**
 
@@ -945,26 +915,6 @@ module_pci_driver(demo_driver);
 
 枚举写 BAR 路径：`pci_bus_assign_resource()` 确定物理地址 → `pci_update_resource()` 写 BAR 寄存器 → `pci_enable_device()` 置 MEM bit → 此后 Mem TLP 才能命中设备内部寄存器。
 
-**分层排障实例：**
-
-| 案例 | 现象 | 根因 | 验证 |
-|------|------|------|------|
-| SoC RC 首启 | 全树 FFFF | PERST# 过早释放 | 延时 100ms 后枚举 |
-| NVMe 可见 | BAR0=0 | assign 失败 | dmesg ENOMEM；扩大 MMIO |
-| 网卡 probe OK | 无 RX 中断 | MSI 未配 | alloc_irq_vectors=-1 |
-| FPGA EP | DMA 花数据 | 无 SMMU map | dma_map 返回值 |
-| 读寄存器 | 全 0xff | MEM 未 enable | setpci COMMAND |
-
-**Documentation/PCI/ 阅读顺序：**
-
-| 文档 | 内容 |
-|------|------|
-| `pci.txt` | 驱动模型总览 |
-| `msix-howto.txt` | MSI-X 编程 |
-| `pciebus-howto.txt` | PCIe 特性 |
-| `pci-iov-howto.txt` | SR-IOV |
-| `boot-interfaces.txt` | 内核启动参数 pci= |
-
-x86 平台 MCFG ACPI 表描述 ECAM 段；ARM64 常用 DT `reg` 或 ACPI IORT 关联 SMMU/ITS。多 segment 服务器 `lspci` 显示 `[domain:bus:dev.fn]`，对应 `pci_domain_nr()`。
+AER（Advanced Error Reporting，Ext Cap 0x0001）：记录 Uncorrectable/Correctable 错误（Bad TLP、Completer Abort、ECRC 等）。内核 `CONFIG_PCIEAER` 启用后可通过 sysfs 与 `lspci -vvv` 查看。MPS/MRRS 不匹配、非法地址访问会触发 AER 计数增加。UR 常见于访问未实现寄存器或 BAR 未 enable；CA 常见于设备内部错误。
 
 PCI/PCIe 对软件统一为 config space + BAR + DMA + IRQ。理解 LTSSM、TLP、ECAM 才能解释枚举与访问失败；驱动遵循 enable → request → master → iomap → irq → dma 顺序，用 lspci 与 sysfs 交叉验证。嵌入式 RC bring-up 同步验证 clk、reset、phy、DT ranges 与 ITS，再加载 EP 驱动。此文锚点与 `drivers/pci/`、`include/linux/pci.h` 一致，可随内核版本 diff 跟踪 API 变化。
